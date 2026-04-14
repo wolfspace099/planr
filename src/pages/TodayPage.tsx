@@ -11,6 +11,61 @@ function timeStr(ts: number) {
   return format(new Date(ts), "HH:mm");
 }
 
+function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-2.5">
+      <span className="text-ink-light">{icon}</span>
+      <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wider">{label}</h2>
+    </div>
+  );
+}
+
+function Empty({ label }: { label: string }) {
+  return <p className="text-xs text-ink-light py-2 px-1">{label}</p>;
+}
+
+function CheckRow({
+  done,
+  label,
+  sub,
+  priority,
+  onToggle,
+}: {
+  done: boolean;
+  label: string;
+  sub?: string;
+  priority?: string;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={clsx(
+        "flex items-center gap-2.5 p-2.5 rounded-lg border transition-all cursor-pointer group",
+        done ? "bg-bg border-border/60 opacity-60" : "bg-surface border-border hover:border-border-strong"
+      )}
+      onClick={onToggle}
+    >
+      <div
+        className={clsx(
+          "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+          done ? "bg-success border-success" : "border-border-strong group-hover:border-accent"
+        )}
+      >
+        {done && <span className="text-white text-[10px]">✓</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={clsx("text-sm text-ink truncate", done && "line-through text-ink-muted")}>
+          {label}
+        </p>
+        {sub && <p className="text-xs text-ink-light">{sub}</p>}
+      </div>
+      {priority === "high" && !done && (
+        <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
+      )}
+    </div>
+  );
+}
+
 export default function TodayPage() {
   const { user } = useUser();
   const now = new Date();
@@ -54,19 +109,19 @@ export default function TodayPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <p className="text-sm text-ink-muted mb-1">{format(now, "EEEE, MMMM d")}</p>
-        <h1 className="text-2xl font-semibold text-ink tracking-tight">
+        <h1 className="text-xl md:text-2xl font-semibold text-ink tracking-tight">
           {greeting}, {user?.firstName ?? "there"} 👋
         </h1>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] mb-5">
-        <div className="rounded-3xl border border-border bg-surface p-4 shadow-sm">
+      <div className="grid gap-5 md:grid-cols-[200px_1fr] lg:grid-cols-[260px_minmax(0,1fr)] mb-5">
+        <div className="rounded-3xl border border-border bg-surface p-3 md:p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Today</p>
-              <p className="text-4xl font-semibold text-ink mt-1">{format(now, "d")}</p>
+              <p className="text-3xl md:text-4xl font-semibold text-ink mt-1">{format(now, "d")}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-ink-muted uppercase tracking-wider">{format(now, "EEE")}</p>
@@ -81,7 +136,7 @@ export default function TodayPage() {
               .map((l: any) => (
                 <Link key={l._id} to={`/lesson/${l._id}`}>
                   <div className={clsx(
-                    "relative rounded-2xl border border-border bg-white p-3 min-h-[74px] hover:border-border-strong transition-colors",
+                    "relative rounded-2xl border border-border bg-white p-3 min-h-[60px] md:min-h-[74px] hover:border-border-strong transition-colors",
                     l.isEvent && "border-l-4 border-l-purple-400"
                   )}>
                     <div className="flex items-start justify-between gap-3">
@@ -108,7 +163,7 @@ export default function TodayPage() {
         </div>
 
         <div>
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Today's schedule */}
             <div className="col-span-2">
               <SectionTitle icon={<Clock size={13} />} label="Schedule" />
@@ -259,51 +314,6 @@ export default function TodayPage() {
           </Link>
         </div>
       </div>
-    </div>
-    </div>
-  );
-}
-  return <p className="text-xs text-ink-light py-2 px-1">{label}</p>;
-}
-
-function CheckRow({
-  done,
-  label,
-  sub,
-  priority,
-  onToggle,
-}: {
-  done: boolean;
-  label: string;
-  sub?: string;
-  priority?: string;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={clsx(
-        "flex items-center gap-2.5 p-2.5 rounded-lg border transition-all cursor-pointer group",
-        done ? "bg-bg border-border/60 opacity-60" : "bg-surface border-border hover:border-border-strong"
-      )}
-      onClick={onToggle}
-    >
-      <div
-        className={clsx(
-          "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-          done ? "bg-success border-success" : "border-border-strong group-hover:border-accent"
-        )}
-      >
-        {done && <span className="text-white text-[10px]">✓</span>}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={clsx("text-sm text-ink truncate", done && "line-through text-ink-muted")}>
-          {label}
-        </p>
-        {sub && <p className="text-xs text-ink-light">{sub}</p>}
-      </div>
-      {priority === "high" && !done && (
-        <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
-      )}
     </div>
   );
 }
