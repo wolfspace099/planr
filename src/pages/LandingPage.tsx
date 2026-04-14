@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { SignInButton } from "@clerk/clerk-react";
 import { Button, Badge } from "../components/ui/primitives";
 import {
@@ -47,6 +46,38 @@ const benefits = [
     title: "Daily routines made simple",
     description:
       "Stay on top of habits and morning routines without extra clutter.",
+  },
+];
+
+const steps = [
+  {
+    title: "Capture your schedule",
+    description:
+      "Import lessons or add school events manually, then see them alongside appointments and homework.",
+    icon: <LayoutDashboard size={18} />,
+  },
+  {
+    title: "Plan test prep",
+    description:
+      "Create a test and let planr schedule study blocks automatically before the exam.",
+    icon: <FlaskConical size={18} />,
+  },
+  {
+    title: "Stay on top of tasks",
+    description:
+      "Use timed task entries and deadline reminders so nothing disappears from your day.",
+    icon: <CheckSquare size={18} />,
+  },
+];
+
+const quotes = [
+  {
+    text: "I finally stopped missing homework because everything is in one place.",
+    author: "Mia, 11th grade",
+  },
+  {
+    text: "The calendar view makes it easy to see study sessions next to my lessons.",
+    author: "Alex, 10th grade",
   },
 ];
 
@@ -147,6 +178,67 @@ export default function LandingPage() {
                 <p className="mt-2 text-xs text-ink-light">Schedule learning sessions for tests automatically so your review is built into your calendar.</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="mt-16" id="features">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">How it works</p>
+              <h2 className="mt-3 text-3xl font-semibold text-ink">From schedule to success</h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-ink-light">
+              Use planr to organize school time, keep deadlines visible, and build study sessions in the same calendar you already trust.
+            </p>
+          </div>
+
+          <div className="grid gap-4 mt-8 sm:grid-cols-2 lg:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.title} className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition hover:border-accent/30">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  {step.icon}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-ink">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-light">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16 rounded-3xl border border-border bg-surface p-8 shadow-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Student feedback</p>
+              <h2 className="mt-3 text-3xl font-semibold text-ink">Loved by learners</h2>
+            </div>
+            <SignInButton mode="modal">
+              <Button variant="primary" size="md">Try it now</Button>
+            </SignInButton>
+          </div>
+
+          <div className="grid gap-4 mt-8 sm:grid-cols-2">
+            {quotes.map((quote) => (
+              <div key={quote.author} className="rounded-3xl border border-border bg-white p-6 shadow-sm">
+                <p className="text-sm leading-7 text-ink-light">“{quote.text}”</p>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">{quote.author}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16 rounded-3xl border border-border bg-surface p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Ready to simplify school?</p>
+          <h2 className="mt-3 text-3xl font-semibold text-ink">Get started with planr today</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-ink-light">
+            Login with one click, add your first lesson or appointment, and watch your school day become easier to manage.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <SignInButton mode="modal">
+              <Button variant="primary" size="md">Login</Button>
+            </SignInButton>
+            <a href="#features">
+              <Button variant="secondary" size="md">See features</Button>
+            </a>
           </div>
         </section>
       </div>
