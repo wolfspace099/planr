@@ -130,16 +130,7 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors"
-          aria-label="Toggle theme"
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
+      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-end gap-2">
         <NavLink
           to="/settings"
           className={clsx(

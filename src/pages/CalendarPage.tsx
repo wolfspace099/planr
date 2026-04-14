@@ -181,12 +181,16 @@ export default function CalendarPage() {
                   {format(day, "d")}
                 </p>
                 {getTestsAt(day).map((t) => (
-                  <FlaskConical
+                  <div
                     key={t._id}
-                    size={14}
-                    className="mx-auto mt-1 text-purple-500"
+                    className="mx-auto mt-1"
                     title={`Toets: ${t.topic}`}
-                  />
+                  >
+                    <FlaskConical
+                      size={14}
+                      className="text-purple-500"
+                    />
+                  </div>
                 ))}
               </div>
             ))}
