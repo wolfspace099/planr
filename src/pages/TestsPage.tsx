@@ -29,6 +29,7 @@ export function TestsPage() {
   const [modal, setModal] = useState(false);
   const [lessonModal, setLessonModal] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [testMode, setTestMode] = useState<"lesson" | "date">("date");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -38,14 +39,16 @@ export function TestsPage() {
 
   const submit = async () => {
     if (!subject || !topic) return;
+    if (testMode === "lesson" && !selectedLesson) return;
     await createTest({
       subject,
       topic,
       date: new Date(date).getTime(),
       description: description || undefined,
-      lessonId: selectedLesson?._id,
+      lessonId: testMode === "lesson" ? selectedLesson?._id : undefined,
     });
     setSelectedLesson(null);
+    setTestMode("date");
     setSubject(""); setTopic(""); setDescription(""); setModal(false);
   };
 
@@ -99,43 +102,92 @@ export function TestsPage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title="Add test">
         <div className="space-y-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-ink-muted">Subject</label>
-            <select value={subject} onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
-              <option value="">Select subject…</option>
-              {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Chapter 3 — Quadratics" />
-          <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Textarea label="Notes (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-          <div className="space-y-3">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <label className="text-xs font-medium text-ink-muted">Lesson (optional)</label>
-                  <p className="text-sm text-ink">
-                    {selectedLesson
-                      ? `${selectedLesson.subject} · ${format(new Date(selectedLesson.startTime), "EEEE d MMM · HH:mm")}`
-                      : "No lesson selected"}
-                  </p>
-                </div>
-                <Button variant="secondary" size="sm" onClick={() => setLessonModal(true)}>
-                  Select lesson
-                </Button>
-              </div>
-              {selectedLesson && (
-                <button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => setSelectedLesson(null)}>
-                  Clear selected lesson
-                </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setTestMode("lesson");
+                if (!selectedLesson) setSubject("");
+              }}
+              className={clsx(
+                "rounded-full px-3 py-1 text-sm transition-all",
+                testMode === "lesson" ? "bg-accent text-white" : "bg-surface text-ink"
               )}
+            >
+              Link to lesson
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTestMode("date");
+                setSelectedLesson(null);
+              }}
+              className={clsx(
+                "rounded-full px-3 py-1 text-sm transition-all",
+                testMode === "date" ? "bg-accent text-white" : "bg-surface text-ink"
+              )}
+            >
+              Set by date
+            </button>
+          </div>
+
+          {testMode === "date" ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-ink-muted">Subject</label>
+                <select value={subject} onChange={(e) => setSubject(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
+                  <option value="">Select subject…</option>
+                  {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <p className="text-xs text-ink-muted">Assign this test to a lesson so it can open directly from the list.</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-ink-muted">Lesson</label>
+                    <p className="text-sm text-ink">
+                      {selectedLesson
+                        ? `${selectedLesson.subject} · ${format(new Date(selectedLesson.startTime), "EEEE d MMM · HH:mm")}`
+                        : "No lesson selected"}
+                    </p>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => {
+                    setLessonModal(true);
+                    setTestMode("lesson");
+                  }}>
+                    Select lesson
+                  </Button>
+                </div>
+                {selectedLesson && (
+                  <button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => {
+                    setSelectedLesson(null);
+                    setSubject("");
+                  }}>
+                    Clear selected lesson
+                  </button>
+                )}
+              </div>
+              <Input label="Subject" value={subject} readOnly />
+              <Input label="Date" type="date" value={date} readOnly />
+            </div>
+          )}
+
+          <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Chapter 3 — Quadratics" />
+          <Textarea label="Notes (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          <div className="text-xs text-ink-muted">
+            {testMode === "lesson"
+              ? "Link this test to a lesson so it opens directly from the list and uses the lesson date."
+              : "Set a standalone test date without linking to a lesson."}
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={submit}>Add</Button>
+            <Button variant="primary" onClick={submit}>
+              Add
+            </Button>
           </div>
         </div>
       </Modal>
@@ -146,6 +198,8 @@ export function TestsPage() {
         onSelect={(lesson) => {
           setSelectedLesson(lesson);
           setSubject(lesson.subject);
+          setDate(format(new Date(lesson.startTime), "yyyy-MM-dd"));
+          setTestMode("lesson");
           setLessonModal(false);
         }}
       />
