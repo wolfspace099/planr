@@ -18,9 +18,190 @@
     padding: 0;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  :root {
+    color-scheme: light;
+    --bg: #F9F9F7;
+    --surface: #FFFFFF;
+    --sidebar: #111110;
+    --sidebar-hover: #1C1C1A;
+    --sidebar-border: #282826;
+    --sidebar-text: #8C8C86;
+    --sidebar-active: #FFFFFF;
+    --border: #E8E7E3;
+    --border-strong: #D4D3CF;
+    --ink: #1A1A17;
+    --ink-muted: #6B6B63;
+    --ink-light: #9C9C94;
+    --accent: #8B5CF6;
+    --accent-hover: #7C3AED;
+    --accent-light: #F3E8FF;
+    --accent-border: #D8B4FE;
+    --success: #16A34A;
+    --success-light: #F0FDF4;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --white: #FFFFFF;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --bg: #0B0B0E;
+    --surface: #111318;
+    --sidebar: #0F172A;
+    --sidebar-hover: #111827;
+    --sidebar-border: #1F2937;
+    --sidebar-text: #9CA3AF;
+    --sidebar-active: #FFFFFF;
+    --border: #1F2937;
+    --border-strong: #334155;
+    --ink: #F8FAFC;
+    --ink-muted: #94A3B8;
+    --ink-light: #CBD5E1;
+    --accent: #A78BFA;
+    --accent-hover: #C4B5FD;
+    --accent-light: #312E81;
+    --accent-border: #8B5CF6;
+    --success: #34D399;
+    --success-light: #052e16;
+    --warning: #F59E0B;
+    --warning-light: #78350f;
+    --danger: #F87171;
+    --danger-light: #581c1c;
+    --white: #111827;
+  }
+
+  .bg-bg {
+    background-color: var(--bg) !important;
+  }
+
+  .bg-surface {
+    background-color: var(--surface) !important;
+  }
+
+  .bg-sidebar {
+    background-color: var(--sidebar) !important;
+  }
+
+  .text-ink {
+    color: var(--ink) !important;
+  }
+
+  .text-ink-muted {
+    color: var(--ink-muted) !important;
+  }
+
+  .text-ink-light {
+    color: var(--ink-light) !important;
+  }
+
+  .border-border {
+    border-color: var(--border) !important;
+  }
+
+  .border-border-strong {
+    border-color: var(--border-strong) !important;
+  }
+
+  .text-sidebar-text {
+    color: var(--sidebar-text) !important;
+  }
+
+  .bg-accent {
+    background-color: var(--accent) !important;
+  }
+
+  .bg-accent-light {
+    background-color: var(--accent-light) !important;
+  }
+
+  .bg-success-light {
+    background-color: var(--success-light) !important;
+  }
+
+  .bg-warning-light {
+    background-color: var(--warning-light) !important;
+  }
+
+  .bg-danger-light {
+    background-color: var(--danger-light) !important;
+  }
+
+  .text-success {
+    color: var(--success) !important;
+  }
+
+  .bg-white {
+    background-color: var(--white) !important;
+  }
+
+  .dark .bg-white {
+    background-color: #111827 !important;
+  }
+
+  .dark .text-black {
+    color: #F8FAFC !important;
+  }
+
+  .dark .border-red-200 {
+    border-color: rgba(248, 113, 113, 0.35) !important;
+  }
+
+  .dark .bg-red-200 {
+    background-color: rgba(248, 113, 113, 0.2) !important;
+  }
+
+  .dark .shadow-card {
+    box-shadow: 0 1px 3px 0 rgb(255 255 255 / 0.04), 0 1px 2px -1px rgb(255 255 255 / 0.04);
+  }
+
+  .dark .shadow-card-hover:hover {
+    box-shadow: 0 4px 6px -1px rgb(255 255 255 / 0.08), 0 2px 4px -2px rgb(255 255 255 / 0.06);
+  }
+
+  .dark .shadow-modal {
+    box-shadow: 0 20px 25px -5px rgb(255 255 255 / 0.08), 0 8px 10px -6px rgb(255 255 255 / 0.06);
+  }
+
+  .dark .hover\:bg-border:hover {
+    background-color: #1f2937 !important;
+  }
+
+  .dark .hover\:bg-white\/10:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .dark .hover\:bg-white\/5:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .dark .text-ink {
+    color: var(--ink) !important;
+  }
+
+  .dark .text-ink-muted {
+    color: var(--ink-muted) !important;
+  }
+
+  .dark .text-ink-light {
+    color: var(--ink-light) !important;
+  }
+
+  .dark .bg-bg {
+    background-color: var(--bg) !important;
+  }
+
+  .dark .bg-surface {
+    background-color: var(--surface) !important;
+  }
+
+  .dark .border-border {
+    border-color: var(--border) !important;
+  }
+
+  .dark .border-border-strong {
+    border-color: var(--border-strong) !important;
   }
 
   ::-webkit-scrollbar-track {

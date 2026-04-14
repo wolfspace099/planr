@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -14,6 +15,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Moon,
+  Sun,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -37,6 +40,27 @@ export default function Sidebar({
 }) {
   const location = useLocation();
   const subjects = useQuery(api.lessons.getSubjects);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const initialTheme = storedTheme
+      ? storedTheme
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+    setTheme(initialTheme);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((value) => (value === "dark" ? "light" : "dark"));
+  };
 
   return (
     <aside
@@ -126,7 +150,16 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-between">
+      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Toggle theme"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
         <NavLink
           to="/settings"
           className={clsx(
