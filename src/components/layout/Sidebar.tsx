@@ -18,15 +18,25 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
-const nav = [
-  { label: "Today", to: "/", icon: LayoutDashboard, exact: true },
-  { label: "Calendar", to: "/calendar", icon: Calendar },
-  { label: "Notebook", to: "/notebook", icon: BookOpen },
-  { label: "Homework", to: "/homework", icon: ClipboardList },
-  { label: "Tasks", to: "/tasks", icon: CheckSquare },
-  { label: "Tests", to: "/tests", icon: FlaskConical },
-  { label: "Habits", to: "/habits", icon: Repeat2 },
-  { label: "Appointments", to: "/appointments", icon: CalendarClock },
+const navSections = [
+  {
+    label: "Planner",
+    items: [
+      { label: "Today", to: "/", icon: LayoutDashboard, exact: true },
+      { label: "Calendar", to: "/calendar", icon: Calendar },
+      { label: "Notebook", to: "/notebook", icon: BookOpen },
+    ],
+  },
+  {
+    label: "School",
+    items: [
+      { label: "Homework", to: "/homework", icon: ClipboardList },
+      { label: "Tasks", to: "/tasks", icon: CheckSquare },
+      { label: "Tests", to: "/tests", icon: FlaskConical },
+      { label: "Habits", to: "/habits", icon: Repeat2 },
+      { label: "Appointments", to: "/appointments", icon: CalendarClock },
+    ],
+  },
 ];
 
 export default function Sidebar({
@@ -38,6 +48,7 @@ export default function Sidebar({
 }) {
   const location = useLocation();
   const subjects = useQuery(api.lessons.getSubjects);
+  const [subjectsOpen, setSubjectsOpen] = useState(true);
 
   return (
     <aside
@@ -70,63 +81,82 @@ export default function Sidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {nav.map(({ label, to, icon: Icon, exact }) => {
-          const active = exact
-            ? location.pathname === to
-            : location.pathname.startsWith(to);
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              className={clsx(
-                "flex items-center",
-                collapsed ? "justify-center px-2 py-3" : "gap-2.5 px-3 py-2",
-                "rounded text-sm transition-colors",
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-sidebar-text hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Icon size={15} strokeWidth={1.75} />
-              <span
-                className={clsx(
-                  "inline-block truncate transition-all duration-200",
-                  collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
-                )}
-              >
-                {label}
-              </span>
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-2">
+        {navSections.map((section) => (
+          <div key={section.label} className="space-y-1">
+            {!collapsed && (
+              <div className="px-3 text-[10px] uppercase tracking-wider text-sidebar-text/60 font-semibold">
+                {section.label}
+              </div>
+            )}
+            {section.items.map(({ label, to, icon: Icon, exact }) => {
+              const active = exact
+                ? location.pathname === to
+                : location.pathname.startsWith(to);
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={clsx(
+                    "flex items-center",
+                    collapsed ? "justify-center px-2 py-3" : "gap-2.5 px-3 py-2",
+                    "rounded text-sm transition-colors",
+                    active
+                      ? "bg-white/10 text-white"
+                      : "text-sidebar-text hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <Icon size={15} strokeWidth={1.75} />
+                  <span
+                    className={clsx(
+                      "inline-block truncate transition-all duration-200",
+                      collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
+                    )}
+                  >
+                    {label}
+                  </span>
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
 
-        {/* Subjects divider */}
         {!collapsed && subjects && subjects.length > 0 && (
-          <div className="pt-4 pb-1 px-3">
-            <span className="text-xs font-medium text-sidebar-text/60 uppercase tracking-wider">
-              Subjects
-            </span>
+          <div className="space-y-1 border-t border-sidebar-border pt-4">
+            <button
+              type="button"
+              onClick={() => setSubjectsOpen((current) => !current)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm font-semibold text-sidebar-text hover:text-white hover:bg-white/5 rounded transition-colors"
+            >
+              <span>Subjects</span>
+              <ChevronRight
+                size={14}
+                className={clsx("transition-transform", subjectsOpen ? "rotate-90" : "rotate-0")}
+              />
+            </button>
+            {subjectsOpen && (
+              <div className="space-y-1 px-3">
+                {subjects.map((subject) => (
+                  <NavLink
+                    key={subject}
+                    to={`/notebook/${encodeURIComponent(subject)}`}
+                    className={({ isActive }) =>
+                      clsx(
+                        "flex items-center gap-2.5 px-3 py-1.5 rounded text-sm transition-colors",
+                        isActive
+                          ? "bg-white/10 text-white"
+                          : "text-sidebar-text hover:text-white hover:bg-white/5"
+                      )
+                    }
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-sidebar-text/50 flex-shrink-0" />
+                    <span className="truncate">{subject}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        {!collapsed &&
-          subjects?.map((subject) => (
-            <NavLink
-              key={subject}
-              to={`/notebook/${encodeURIComponent(subject)}`}
-              className={({ isActive }) =>
-                clsx(
-                  "flex items-center gap-2.5 px-3 py-1.5 rounded text-sm transition-colors",
-                  isActive
-                    ? "bg-white/10 text-white"
-                    : "text-sidebar-text hover:text-white hover:bg-white/5"
-                )
-              }
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-sidebar-text/50 flex-shrink-0" />
-              <span className="truncate">{subject}</span>
-            </NavLink>
-          ))}
       </nav>
 
       {/* Bottom */}

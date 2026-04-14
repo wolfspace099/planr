@@ -163,6 +163,53 @@ export const createTest = mutation({
   },
 });
 
+function parseTimeHHMM(value: string | undefined) {
+  if (!value) return { hours: 18, minutes: 0 };
+  const [hours, minutes] = value.split(":").map((part) => parseInt(part, 10));
+  return { hours: Number.isNaN(hours) ? 18 : hours, minutes: Number.isNaN(minutes) ? 0 : minutes };
+}
+
+export const scheduleLearningForTest = mutation({
+  args: {
+    testId: v.id("tests"),
+    sessions: v.optional(v.number()),
+    durationMinutes: v.optional(v.number()),
+    preferredTime: v.optional(v.string()),
+  },
+  handler: async (ctx, { testId, sessions, durationMinutes, preferredTime }) => {
+    const userId = await requireUser(ctx);
+    const test = await ctx.db.get(testId);
+    if (!test || test.userId !== userId) throw new Error("Not found");
+
+    const sessionCount = sessions ?? 3;
+    const duration = durationMinutes ?? 60;
+    const { hours, minutes } = parseTimeHHMM(preferredTime);
+    const testDate = new Date(test.date);
+
+    const createdAppointments: any[] = [];
+    for (let i = 1; i <= sessionCount; i++) {
+      const sessionDate = new Date(testDate);
+      sessionDate.setDate(sessionDate.getDate() - i);
+      sessionDate.setHours(hours, minutes, 0, 0);
+
+      createdAppointments.push(
+        await ctx.db.insert("appointments", {
+          userId,
+          title: `Study for ${test.topic}`,
+          description: `Prepare for the ${test.subject} test on ${new Date(test.date).toLocaleDateString()}`,
+          startTime: sessionDate.getTime(),
+          endTime: sessionDate.getTime() + duration * 60 * 1000,
+          location: undefined,
+          isRecurring: false,
+          color: "#8B5CF6",
+        })
+      );
+    }
+
+    return createdAppointments;
+  },
+});
+
 export const deleteTest = mutation({
   args: { id: v.id("tests") },
   handler: async (ctx, { id }) => {
