@@ -22,10 +22,10 @@ function decodeIcalText(text: string): string {
 const SUBJECT_MAP: Record<string, string> = {
   wis: "Wiskunde", wi: "Wiskunde",
   ned: "Nederlands", nl: "Nederlands", dutl: "Nederlands", netl: "Nederlands",
-  en: "Engels", eng: "Engels",
+  en: "Engels", eng: "Engels", eng2: "Engels",
   du: "Duits", dui: "Duits",
   fr: "Frans", fra: "Frans",
-  bi: "Biologie", bio: "Biologie",
+  bi: "Biologie", bio: "Biologie", biol: "Biologie",
   na: "Natuurkunde", nat: "Natuurkunde",
   sk: "Scheikunde", sch: "Scheikunde", ci: "Scheikunde",
   ak: "Aardrijkskunde", aard: "Aardrijkskunde",
@@ -33,15 +33,16 @@ const SUBJECT_MAP: Record<string, string> = {
   ec: "Economie", eco: "Economie",
   m: "Maatschappijleer", ma: "Maatschappijleer",
   lo: "Lichamelijke Opvoeding", pe: "Lichamelijke Opvoeding", sport: "Lichamelijke Opvoeding",
-  ckv: "CKV", mu: "Muziek", tek: "Tekenen", bk: "Beeldende Kunst",
-  inf: "Informatica", in: "Informatica",
-  net: "Netwerken", ac: "Applicatieontwikkeling", app: "Applicatieontwikkeling",
-  rs: "Religie", sc: "Security", sv: "Systeembeheer", sys: "Systeembeheer",
-  fil: "Filosofie", lat: "Latijn", gri: "Grieks", nask: "NaSk",
-  lob: "LOB", thea: "Theater", drama: "Drama",
+  ckv: "Ckv", mu: "Muziek", tek: "Tekenen", bk: "Beeldende Kunst",
+  inf: "Informatica", in: "Informatica", aco: "Aco", ac: "Aco",
+  net: "Netwerken", sc: "Security", sv: "Systeembeheer", sys: "Systeembeheer",
+  rs: "Religie", fil: "Filosofie", lat: "Latijn", gri: "Grieks", nask: "Nask",
+  lob: "Lob", civ: "Civics", civics: "Civics",
 };
 
-function extractZermeloSubject(raw: string): { subject: string; location: string | undefined } {
+const NON_ACADEMIC_KEYWORDS = ["theater", "thea", "s", "drama"];
+
+function extractZermeloSubject(raw: string): { subject: string; location: string | undefined; isEvent: boolean } {
   let s = decodeIcalText(raw).trim();
 
   // 1. Strip leading time: "09:20 "
@@ -62,18 +63,27 @@ function extractZermeloSubject(raw: string): { subject: string; location: string
   // 4. First remaining token is the subject abbreviation; last token is class.lesson (ignored)
   const code = tokens[0]?.toLowerCase() ?? "";
   let subject = code;
+  let isEvent = false;
+  
   if (!code) {
     subject = decodeIcalText(raw);
   } else {
-    const mapped = SUBJECT_MAP[code];
-    if (mapped) {
-      subject = mapped;
+    // Check if it's a non-academic event
+    if (NON_ACADEMIC_KEYWORDS.includes(code)) {
+      isEvent = true;
+      subject = code.charAt(0).toUpperCase() + code.slice(1);
     } else {
-      subject = code.toUpperCase();
+      const mapped = SUBJECT_MAP[code];
+      if (mapped) {
+        subject = mapped;
+      } else {
+        // For unmapped codes, capitalize first letter only
+        subject = code.charAt(0).toUpperCase() + code.slice(1);
+      }
     }
   }
 
-  return { subject, location };
+  return { subject, location, isEvent };
 }
 
 function parseIcalDate(dtStr: string): number {
@@ -89,7 +99,7 @@ function parseIcalDate(dtStr: string): number {
 }
 
 function parseIcal(icalText: string): Array<{
-  icalUid: string; subject: string; startTime: number; endTime: number; location?: string;
+  icalUid: string; subject: string; startTime: number; endTime: number; location?: string; isEvent: boolean;
 }> {
   const normalised = icalText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "");
   const eventBlocks = normalised.split("BEGIN:VEVENT").slice(1);
@@ -105,13 +115,14 @@ function parseIcal(icalText: string): Array<{
     if (!uid || !summary || !dtstart || !dtend) continue;
     // Skip lessons marked as cancelled with [x]
     if (/\[x\]/i.test(summary)) continue;
-    const { subject, location: roomFromSummary } = extractZermeloSubject(summary);
+    const { subject, location: roomFromSummary, isEvent } = extractZermeloSubject(summary);
     results.push({
       icalUid: uid,
       subject,
       startTime: parseIcalDate(dtstart),
       endTime: parseIcalDate(dtend),
       location: locationField ? decodeIcalText(locationField) : roomFromSummary,
+      isEvent,
     });
   }
   return results;

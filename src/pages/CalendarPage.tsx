@@ -216,7 +216,10 @@ export default function CalendarPage() {
                       ) : (
                         cellLessons.map((l) => (
                           <Link key={l._id} to={`/lesson/${l._id}`}>
-                            <div className="rounded border border-border bg-surface px-1.5 py-1 min-h-[54px] flex flex-col gap-0.5 hover:bg-bg hover:border-border-strong transition-colors cursor-pointer">
+                            <div className={clsx(
+                              "rounded border border-border bg-surface px-1.5 py-1 min-h-[54px] flex flex-col gap-0.5 hover:bg-bg hover:border-border-strong transition-colors cursor-pointer",
+                              l.isEvent && "border-l-4 border-l-purple-400"
+                            )}>
                               <span className="text-[11px] font-semibold text-ink leading-tight">
                                 {subjectDisplay(l.subject)}
                               </span>

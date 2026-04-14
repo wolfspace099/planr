@@ -74,6 +74,7 @@ export const upsert = internalMutation({
     startTime: v.number(),
     endTime: v.number(),
     location: v.optional(v.string()),
+    isEvent: v.boolean(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -89,6 +90,7 @@ export const upsert = internalMutation({
         startTime: args.startTime,
         endTime: args.endTime,
         location: args.location,
+        isEvent: args.isEvent,
       });
     } else {
       await ctx.db.insert("lessons", args);
