@@ -5,7 +5,7 @@ import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
   format, isSameDay, isToday,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, FlaskConical } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/ui/primitives";
 import clsx from "clsx";
@@ -181,13 +181,12 @@ export default function CalendarPage() {
                   {format(day, "d")}
                 </p>
                 {getTestsAt(day).map((t) => (
-                  <div
+                  <FlaskConical
                     key={t._id}
-                    className="mt-1 px-1.5 py-0.5 bg-danger-light border border-red-200 rounded text-[10px] font-medium text-danger truncate"
+                    size={14}
+                    className="mx-auto mt-1 text-purple-500"
                     title={`Toets: ${t.topic}`}
-                  >
-                    🧪 {t.topic}
-                  </div>
+                  />
                 ))}
               </div>
             ))}
@@ -252,7 +251,7 @@ export default function CalendarPage() {
                                         height: 0,
                                         borderLeft: "5px solid transparent",
                                         borderRight: "5px solid transparent",
-                                        borderBottom: "8px solid #7c3aed",
+                                        borderBottom: "8px solid #8b5cf6",
                                       }}
                                     />
                                   )}

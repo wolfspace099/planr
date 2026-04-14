@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -15,8 +15,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Moon,
-  Sun,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -40,27 +38,6 @@ export default function Sidebar({
 }) {
   const location = useLocation();
   const subjects = useQuery(api.lessons.getSubjects);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const initialTheme = storedTheme
-      ? storedTheme
-      : window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-    setTheme(initialTheme);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((value) => (value === "dark" ? "light" : "dark"));
-  };
 
   return (
     <aside
@@ -70,7 +47,10 @@ export default function Sidebar({
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+      <div className={clsx(
+        "flex items-center py-4 border-b border-sidebar-border transition-all duration-200",
+        collapsed ? "justify-center px-2" : "justify-between px-4"
+      )}>
         <span
           className={clsx(
             "inline-block text-white font-semibold tracking-tight transition-all duration-200",
@@ -82,7 +62,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors"
+          className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

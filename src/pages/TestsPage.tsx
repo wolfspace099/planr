@@ -171,8 +171,6 @@ export function TestsPage() {
                   </button>
                 )}
               </div>
-              <Input label="Subject" value={subject} readOnly />
-              <Input label="Date" type="date" value={date} readOnly />
             </div>
           )}
 

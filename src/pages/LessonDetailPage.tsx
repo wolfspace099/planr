@@ -3,8 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { format } from "date-fns";
-import { useState } from "react";
-import { ArrowLeft, MapPin, Clock, BookOpen, ClipboardList, CheckSquare, Plus, Trash2, Save } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, MapPin, Clock, BookOpen, ClipboardList, CheckSquare, Plus, Trash2, Save, FlaskConical } from "lucide-react";
 import NoteEditor from "../components/editor/NoteEditor";
 import { Button, Modal, Input, Textarea, Badge, EmptyState } from "../components/ui/primitives";
 import clsx from "clsx";
@@ -19,9 +19,15 @@ export default function LessonDetailPage() {
   const [taskModal, setTaskModal] = useState(false);
 
   const lesson = useQuery(api.lessons.getById, { id: lessonId });
+  const tests = useQuery(api.misc.getTests);
   const note = useQuery(api.notes.getByLesson, { lessonId });
   const homework = useQuery(api.homework.getByLesson, { lessonId });
   const tasks = useQuery(api.tasks.getByLesson, { lessonId });
+
+  const lessonTest = useMemo(
+    () => (tests ?? []).find((t: any) => String(t.lessonId) === String(lessonId)),
+    [tests, lessonId]
+  );
 
   const saveNote = useMutation(api.notes.save);
   const toggleHw = useMutation(api.homework.toggle);
@@ -83,6 +89,16 @@ export default function LessonDetailPage() {
           )}
         </div>
       </div>
+
+      {lessonTest && (
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-700">
+          <FlaskConical size={14} />
+          <span>
+            Linked test: <strong>{lessonTest.topic}</strong>
+            {lessonTest.description ? ` — ${lessonTest.description}` : ""}
+          </span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-border mb-6">
