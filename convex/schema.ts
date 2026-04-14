@@ -16,7 +16,7 @@ export default defineSchema({
     startTime: v.number(),
     endTime: v.number(),
     location: v.optional(v.string()),
-    isEvent: v.boolean(),
+    isEvent: v.optional(v.boolean()),
     chapterId: v.optional(v.id("chapters")),
   })
     .index("by_user", ["userId"])
