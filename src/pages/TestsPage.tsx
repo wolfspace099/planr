@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format, isPast, isToday } from "date-fns";
-import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock } from "lucide-react";
+import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock, MapPin } from "lucide-react";
 import { PageHeader, Button, Modal, Input, Textarea, EmptyState, Badge } from "../components/ui/primitives";
 import clsx from "clsx";
 
