@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { format } from "date-fns";
-import { RefreshCw, Link2, CheckCircle, AlertCircle } from "lucide-react";
+import { RefreshCw, Link2, CheckCircle, AlertCircle, Moon, Sun } from "lucide-react";
 import { PageHeader, Input, Button } from "../components/ui/primitives";
+import clsx from "clsx";
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -17,6 +18,25 @@ export default function SettingsPage() {
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const initialTheme = storedTheme
+      ? storedTheme
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+    setTheme(initialTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    document.documentElement.style.colorScheme = newTheme;
+    localStorage.setItem("theme", newTheme);
+  };
 
   const currentUrl = settings?.icalUrl ?? "";
 
@@ -61,6 +81,31 @@ export default function SettingsPage() {
               <p className="font-medium text-sm text-ink">{user?.fullName}</p>
               <p className="text-xs text-ink-muted">{user?.primaryEmailAddress?.emailAddress}</p>
             </div>
+          </div>
+        </section>
+
+        {/* Theme */}
+        <section>
+          <h2 className="text-sm font-semibold text-ink mb-3">Appearance</h2>
+          <div className="p-4 bg-surface border border-border rounded-lg flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm text-ink">Dark mode</p>
+              <p className="text-xs text-ink-muted mt-1">Switch between light and dark theme</p>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className={clsx(
+                "relative inline-flex items-center h-8 w-14 rounded-full transition-colors",
+                theme === "dark" ? "bg-accent" : "bg-border-strong"
+              )}
+            >
+              <span className={clsx(
+                "inline-flex items-center justify-center h-7 w-7 rounded-full bg-white shadow transition-transform",
+                theme === "dark" ? "translate-x-6" : "translate-x-0.5"
+              )}>
+                {theme === "dark" ? <Moon size={14} className="text-accent" /> : <Sun size={14} className="text-yellow-500" />}
+              </span>
+            </button>
           </div>
         </section>
 

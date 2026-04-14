@@ -130,11 +130,11 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-end gap-2">
+      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-between gap-2">
         <NavLink
           to="/settings"
           className={clsx(
-            "p-1.5 rounded transition-colors",
+            "p-1.5 rounded transition-colors flex-shrink-0",
             location.pathname === "/settings"
               ? "text-white"
               : "text-sidebar-text hover:text-white"
