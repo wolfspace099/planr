@@ -3,7 +3,7 @@ import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { format, startOfDay, endOfDay, isToday } from "date-fns";
 import { Link } from "react-router-dom";
-import { CheckSquare, BookOpen, ClipboardList, FlaskConical, MapPin, Clock, Repeat2 } from "lucide-react";
+import { CheckSquare, BookOpen, ClipboardList, FlaskConical, MapPin, Repeat2 } from "lucide-react";
 import { Badge } from "../components/ui/primitives";
 import clsx from "clsx";
 
@@ -80,7 +80,6 @@ export default function TodayPage() {
   const tests = useQuery(api.misc.getTests);
   const habits = useQuery(api.misc.getHabits);
   const completions = useQuery(api.misc.getCompletions, { date: todayStr });
-  const appointments = useQuery(api.misc.getAppointments);
 
   const toggleHabit = useMutation(api.misc.toggleCompletion);
   const toggleTask = useMutation(api.tasks.toggle);
@@ -91,13 +90,6 @@ export default function TodayPage() {
     const d = new Date(t.date);
     return isToday(d);
   }) ?? [];
-
-  const todayAppts = (appointments ?? []).filter((a) => {
-    if (a.isRecurring) {
-      return a.recurringDayOfWeek === now.getDay();
-    }
-    return a.startTime >= todayStart && a.startTime <= todayEnd;
-  });
 
   const completedIds = new Set(completions?.map((c) => c.habitId) ?? []);
 
@@ -164,66 +156,6 @@ export default function TodayPage() {
         {/* Right Main Content */}
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Today's schedule */}
-            <div className="col-span-2">
-              <SectionTitle icon={<Clock size={13} />} label="Schedule" />
-              <div className="space-y-2">
-                {[...(lessons ?? []), ...todayAppts]
-                  .sort((a, b) => a.startTime - b.startTime)
-                  .map((item) => {
-                    const isLesson = "icalUid" in item;
-                    if (isLesson) {
-                      const l = item as any;
-                      return (
-                        <Link key={l._id} to={`/lesson/${l._id}`}>
-                          <div className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all group">
-                            <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
-                              {timeStr(l.startTime)}
-                            </div>
-                            <div className="w-1 h-8 rounded-full bg-accent/70 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-ink truncate group-hover:text-accent transition-colors">
-                                {l.subject}
-                              </p>
-                              {l.location && (
-                                <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
-                                  <MapPin size={10} /> {l.location}
-                                </p>
-                              )}
-                            </div>
-                            <span className="text-xs text-ink-light">{timeStr(l.endTime)}</span>
-                          </div>
-                        </Link>
-                      );
-                    }
-                    const a = item as any;
-                    return (
-                      <div key={a._id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg">
-                        <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
-                          {a.isRecurring ? a.recurringTimeHHMM : timeStr(a.startTime)}
-                        </div>
-                        <div
-                          className="w-1 h-8 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: a.color ?? "#6B7280" }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-ink truncate">{a.title}</p>
-                          {a.location && (
-                            <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
-                              <MapPin size={10} /> {a.location}
-                            </p>
-                          )}
-                        </div>
-                        <Badge color="default">Personal</Badge>
-                      </div>
-                    );
-                  })}
-                {(lessons?.length ?? 0) === 0 && todayAppts.length === 0 && (
-                  <Empty label="No lessons or appointments today" />
-                )}
-              </div>
-            </div>
-
             {/* Homework */}
             <div>
               <SectionTitle icon={<ClipboardList size={13} />} label="Homework due today" />
