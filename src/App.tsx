@@ -20,6 +20,7 @@ export default function App() {
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<TodayPage />} />
+            <Route path="/home" element={<LandingPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/notebook" element={<NotebookPage />} />
             <Route path="/notebook/:subject" element={<NotebookPage />} />
