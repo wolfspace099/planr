@@ -67,10 +67,7 @@ export default function TodayPage() {
           <SectionTitle icon={<Clock size={13} />} label="Schedule" />
           <div className="space-y-2">
             {[...(lessons ?? []), ...todayAppts]
-              .sort((a, b) => {
-                const aTime = "startTime" in a ? a.startTime : a.startTime;
-                return aTime - b.startTime;
-              })
+              .sort((a, b) => a.startTime - b.startTime)
               .map((item) => {
                 const isLesson = "icalUid" in item;
                 if (isLesson) {
