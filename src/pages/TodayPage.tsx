@@ -200,10 +200,19 @@ export default function TodayPage() {
                   {todayTests.map((t) => (
                     <div key={t._id} className="flex items-center gap-3 p-3 bg-danger-light border border-red-200 rounded-lg">
                       <FlaskConical size={14} className="text-danger flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm text-ink">{t.topic}</p>
-                        <p className="text-xs text-ink-muted">{t.subject}</p>
-                      </div>
+                      {t.lessonId ? (
+                        <Link to={`/lesson/${t.lessonId}`} className="flex-1 min-w-0">
+                          <div>
+                            <p className="font-medium text-sm text-ink">{t.topic}</p>
+                            <p className="text-xs text-ink-muted">{t.subject}</p>
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-ink">{t.topic}</p>
+                          <p className="text-xs text-ink-muted">{t.subject}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -1,19 +1,34 @@
 // ─── Tests Page ──────────────────────────────────────────────────────────────
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format, isPast, isToday } from "date-fns";
-import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock, MapPin } from "lucide-react";
+import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock } from "lucide-react";
 import { PageHeader, Button, Modal, Input, Textarea, EmptyState, Badge } from "../components/ui/primitives";
 import clsx from "clsx";
 
 export function TestsPage() {
   const tests = useQuery(api.misc.getTests);
   const subjects = useQuery(api.lessons.getSubjects);
+  const lessons = useQuery(api.lessons.getAll);
+  const lessonsByDay = useMemo(() => {
+    return (lessons ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.startTime - b.startTime)
+      .reduce((acc: Record<string, any[]>, lesson: any) => {
+        const day = format(new Date(lesson.startTime), "EEEE d MMM");
+        if (!acc[day]) acc[day] = [];
+        acc[day].push(lesson);
+        return acc;
+      }, {});
+  }, [lessons]);
   const createTest = useMutation(api.misc.createTest);
   const deleteTest = useMutation(api.misc.deleteTest);
 
   const [modal, setModal] = useState(false);
+  const [lessonModal, setLessonModal] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -23,7 +38,14 @@ export function TestsPage() {
 
   const submit = async () => {
     if (!subject || !topic) return;
-    await createTest({ subject, topic, date: new Date(date).getTime(), description: description || undefined });
+    await createTest({
+      subject,
+      topic,
+      date: new Date(date).getTime(),
+      description: description || undefined,
+      lessonId: selectedLesson?._id,
+    });
+    setSelectedLesson(null);
     setSubject(""); setTopic(""); setDescription(""); setModal(false);
   };
 
@@ -45,15 +67,27 @@ export function TestsPage() {
                 today ? "border-danger bg-danger-light/20" : past ? "border-border opacity-60" : "border-border hover:border-border-strong"
               )}>
                 <FlaskConical size={16} className={clsx("flex-shrink-0 mt-0.5", today ? "text-danger" : "text-ink-muted")} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-sm text-ink">{t.topic}</p>
-                    <Badge color="default">{t.subject}</Badge>
-                    {today && <Badge color="red">Today!</Badge>}
+                {t.lessonId ? (
+                  <Link to={`/lesson/${t.lessonId}`} className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm text-ink">{t.topic}</p>
+                      <Badge color="default">{t.subject}</Badge>
+                      {today && <Badge color="red">Today!</Badge>}
+                    </div>
+                    {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
+                    <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
+                  </Link>
+                ) : (
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm text-ink">{t.topic}</p>
+                      <Badge color="default">{t.subject}</Badge>
+                      {today && <Badge color="red">Today!</Badge>}
+                    </div>
+                    {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
+                    <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
                   </div>
-                  {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
-                  <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
-                </div>
+                )}
                 <button onClick={() => deleteTest({ id: t._id })} className="p-1 rounded text-ink-light hover:text-danger transition-colors">
                   <Trash2 size={13} />
                 </button>
@@ -76,17 +110,93 @@ export function TestsPage() {
           <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Chapter 3 — Quadratics" />
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <Textarea label="Notes (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          <div className="space-y-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-medium text-ink-muted">Lesson (optional)</label>
+                  <p className="text-sm text-ink">
+                    {selectedLesson
+                      ? `${selectedLesson.subject} · ${format(new Date(selectedLesson.startTime), "EEEE d MMM · HH:mm")}`
+                      : "No lesson selected"}
+                  </p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setLessonModal(true)}>
+                  Select lesson
+                </Button>
+              </div>
+              {selectedLesson && (
+                <button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => setSelectedLesson(null)}>
+                  Clear selected lesson
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-ink-muted">Assign this test to a lesson so it can open directly from the list.</p>
+          </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
             <Button variant="primary" onClick={submit}>Add</Button>
           </div>
         </div>
       </Modal>
+      <LessonPickerModal
+        open={lessonModal}
+        onClose={() => setLessonModal(false)}
+        lessonsByDay={lessonsByDay}
+        onSelect={(lesson) => {
+          setSelectedLesson(lesson);
+          setSubject(lesson.subject);
+          setLessonModal(false);
+        }}
+      />
     </div>
   );
 }
 
-// ─── Habits Page ─────────────────────────────────────────────────────────────
+function LessonPickerModal({
+  open,
+  onClose,
+  lessonsByDay,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lessonsByDay: Record<string, any[]>;
+  onSelect: (lesson: any) => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="Select lesson">
+      <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+        {Object.entries(lessonsByDay).length === 0 ? (
+          <p className="text-sm text-ink-muted">No lessons available to assign.</p>
+        ) : (
+          Object.entries(lessonsByDay).map(([day, lessons]) => (
+            <div key={day} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{day}</p>
+              <div className="space-y-2">
+                {lessons.map((lesson) => (
+                  <button
+                    key={lesson._id}
+                    onClick={() => onSelect(lesson)}
+                    className="w-full text-left px-3 py-2 rounded border border-border bg-surface hover:border-accent hover:bg-accent/5 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-ink">{lesson.subject}</p>
+                        <p className="text-xs text-ink-muted">{format(new Date(lesson.startTime), "HH:mm")} – {format(new Date(lesson.endTime), "HH:mm")}</p>
+                      </div>
+                      {lesson.location && <span className="text-xs text-ink-muted">{lesson.location}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 export function HabitsPage() {
   const habits = useQuery(api.misc.getHabits);
