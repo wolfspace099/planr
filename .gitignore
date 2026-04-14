@@ -1,0 +1,5 @@
+planr.tar.gz
+.env.local
+node_modules
+.agents
+.claude

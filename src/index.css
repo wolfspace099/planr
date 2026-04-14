@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-bg text-ink font-sans;
+    margin: 0;
+    padding: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-strong rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-light;
+  }
+}
+
+/* ─── TipTap / ProseMirror Editor ────────────────────────────────────────── */
+
+.ProseMirror {
+  outline: none;
+  min-height: 400px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #1A1A17;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+.ProseMirror p {
+  margin: 0.25em 0;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9C9C94;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #111110;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.ProseMirror h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #111110;
+  margin: 1.25rem 0 0.4rem;
+}
+
+.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1A1A17;
+  margin: 1rem 0 0.35rem;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.4rem;
+  margin: 0.5em 0;
+}
+
+.ProseMirror li {
+  margin: 0.2em 0;
+}
+
+.ProseMirror li > p {
+  margin: 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #E8E7E3;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6B6B63;
+  font-style: italic;
+}
+
+.ProseMirror code {
+  background: #F3F3F0;
+  border: 1px solid #E8E7E3;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.875em;
+  color: #D73A49;
+}
+
+.ProseMirror pre {
+  background: #1A1A17;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.ProseMirror pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #E8E8E3;
+  font-size: 0.875rem;
+}
+
+.ProseMirror mark {
+  background: #FFF3B0;
+  border-radius: 2px;
+  padding: 0.05em 0.15em;
+}
+
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #E8E7E3;
+  margin: 1.5rem 0;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid #E8E7E3;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.ProseMirror table th {
+  background: #F9F9F7;
+  font-weight: 600;
+  color: #1A1A17;
+}
+
+.ProseMirror table .selectedCell {
+  background: #EDF2FF;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #3B6FFF;
+}

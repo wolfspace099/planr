@@ -1,0 +1,127 @@
+import { action, internalMutation } from "./_generated/server";
+import { internal, api } from "./_generated/api";
+import { v } from "convex/values";
+
+function extractField(text: string, field: string): string | undefined {
+  const regex = new RegExp(`^${field}(?:;[^:]*)?:(.+)$`, "m");
+  const match = text.match(regex);
+  if (!match) return undefined;
+  let value = match[1].trim();
+  value = value.replace(/\n[ \t]/g, "");
+  return value;
+}
+
+function decodeIcalText(text: string): string {
+  return text
+    .replace(/\\n/g, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\");
+}
+
+const SUBJECT_MAP: Record<string, string> = {
+  wis: "Wiskunde", wi: "Wiskunde",
+  ned: "Nederlands", nl: "Nederlands", dutl: "Nederlands", netl: "Nederlands",
+  en: "Engels", eng: "Engels",
+  du: "Duits", dui: "Duits",
+  fr: "Frans", fra: "Frans",
+  bi: "Biologie", bio: "Biologie",
+  na: "Natuurkunde", nat: "Natuurkunde",
+  sk: "Scheikunde", sch: "Scheikunde", ci: "Scheikunde",
+  ak: "Aardrijkskunde", aard: "Aardrijkskunde",
+  gs: "Geschiedenis", ges: "Geschiedenis",
+  ec: "Economie", eco: "Economie",
+  m: "Maatschappijleer", ma: "Maatschappijleer",
+  lo: "Lichamelijke Opvoeding", pe: "Lichamelijke Opvoeding", sport: "Lichamelijke Opvoeding",
+  ckv: "CKV", mu: "Muziek", tek: "Tekenen", bk: "Beeldende Kunst",
+  inf: "Informatica", in: "Informatica",
+  net: "Netwerken", ac: "Applicatieontwikkeling", app: "Applicatieontwikkeling",
+  rs: "Religie", sc: "Security", sv: "Systeembeheer", sys: "Systeembeheer",
+  fil: "Filosofie", lat: "Latijn", gri: "Grieks", nask: "NaSk",
+  lob: "LOB", thea: "Theater", drama: "Drama",
+};
+
+function extractZermeloSubject(raw: string): string {
+  let s = decodeIcalText(raw).trim();
+
+  // 1. Strip leading time: "09:20 "
+  s = s.replace(/^\d{1,2}:\d{2}\s*/, "").trim();
+
+  // 2. Strip all flag tokens: [>], [!], [o], [x], etc.
+  s = s.replace(/(\[[^\]]*\]\s*)+/g, "").trim();
+
+  // 3. Strip room code — first token that contains a digit (w107, wsh1, A.101, lok3)
+  const tokens = s.split(/\s+/);
+  const roomIdx = tokens.findIndex((t) => /\d/.test(t));
+  if (roomIdx !== -1) tokens.splice(roomIdx, 1);
+
+  // 4. First remaining token is the subject abbreviation; last token is class.lesson (ignored)
+  const code = tokens[0]?.toLowerCase() ?? "";
+  if (!code) return decodeIcalText(raw);
+
+  const mapped = SUBJECT_MAP[code];
+  if (mapped) return mapped;
+
+  return code.toUpperCase();
+}
+
+function parseIcalDate(dtStr: string): number {
+  const clean = dtStr.replace(/^(?:TZID=[^:]+:)?/, "").trim();
+  if (clean.length === 8) {
+    const y = clean.slice(0, 4), m = clean.slice(4, 6), d = clean.slice(6, 8);
+    return new Date(`${y}-${m}-${d}T00:00:00`).getTime();
+  }
+  const y = clean.slice(0, 4), mo = clean.slice(4, 6), d = clean.slice(6, 8);
+  const h = clean.slice(9, 11), mi = clean.slice(11, 13), s = clean.slice(13, 15);
+  if (clean.endsWith("Z")) return Date.UTC(+y, +mo - 1, +d, +h, +mi, +s);
+  return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}`).getTime();
+}
+
+function parseIcal(icalText: string): Array<{
+  icalUid: string; subject: string; startTime: number; endTime: number; location?: string;
+}> {
+  const normalised = icalText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "");
+  const eventBlocks = normalised.split("BEGIN:VEVENT").slice(1);
+  const results = [];
+  for (const block of eventBlocks) {
+    const endIdx = block.indexOf("END:VEVENT");
+    const text = endIdx >= 0 ? block.slice(0, endIdx) : block;
+    const uid = extractField(text, "UID");
+    const summary = extractField(text, "SUMMARY");
+    const dtstart = extractField(text, "DTSTART");
+    const dtend = extractField(text, "DTEND");
+    const location = extractField(text, "LOCATION");
+    if (!uid || !summary || !dtstart || !dtend) continue;
+    // Skip lessons marked as cancelled with [x]
+    if (/\[x\]/i.test(summary)) continue;
+    results.push({
+      icalUid: uid,
+      subject: extractZermeloSubject(summary),
+      startTime: parseIcalDate(dtstart),
+      endTime: parseIcalDate(dtend),
+      location: location ? decodeIcalText(location) : undefined,
+    });
+  }
+  return results;
+}
+
+export const syncCalendar = action({
+  args: { userId: v.string(), icalUrl: v.string() },
+  handler: async (ctx, { userId, icalUrl }) => {
+    const response = await fetch(icalUrl);
+    if (!response.ok) throw new Error(`Failed to fetch iCal: ${response.status}`);
+    const icalText = await response.text();
+    const events = parseIcal(icalText);
+
+    // Delete all existing lessons for this user before syncing new ones
+    await ctx.runMutation(internal.lessons.deleteAllForUser, { userId });
+
+    let upserted = 0;
+    for (const event of events) {
+      await ctx.runMutation(internal.lessons.upsert, { userId, ...event });
+      upserted++;
+    }
+    await ctx.runMutation(api.userSettings.markSynced);
+    return { count: upserted };
+  },
+});
