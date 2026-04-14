@@ -72,6 +72,31 @@ function subjectDisplay(subject: string): string {
   return subject.length > 12 ? subject.slice(0, 10) + "…" : subject;
 }
 
+function appointmentStartMinutes(appointment: any): number {
+  if (appointment.isRecurring) {
+    const parts = String(appointment.recurringTimeHHMM ?? "0:00").split(":");
+    const [hours, minutes] = parts.map((value) => parseInt(value, 10));
+    return (Number.isNaN(hours) ? 0 : hours) * 60 + (Number.isNaN(minutes) ? 0 : minutes);
+  }
+  const date = new Date(appointment.startTime);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function appointmentWithinPeriod(appointment: any, day: Date, period: typeof SCHOOL_PERIODS[number]): boolean {
+  if (appointment.isRecurring) {
+    if (appointment.recurringDayOfWeek !== day.getDay()) return false;
+    const minutes = appointmentStartMinutes(appointment);
+    return minutes >= toMins(period.startHH, period.startMM) && minutes < toMins(period.endHH, period.endMM);
+  }
+  if (!isSameDay(new Date(appointment.startTime), day)) return false;
+  const minutes = appointmentStartMinutes(appointment);
+  return minutes >= toMins(period.startHH, period.startMM) && minutes < toMins(period.endHH, period.endMM);
+}
+
+function getAppointmentsAtPeriod(appointments: any[], day: Date, period: typeof SCHOOL_PERIODS[number]) {
+  return appointments.filter((a) => appointmentWithinPeriod(a, day, period));
+}
+
 /** Get appointments that fall within a given hour slot on a given day. */
 function appointmentsInHour(
   appointments: any[],
@@ -227,8 +252,22 @@ export default function CalendarPage() {
                 {/* Cells */}
                 {days.map((day) => {
                   const cellLessons = getLessonsAt(day, period.label);
+                  const cellAppointments = getAppointmentsAtPeriod(appointments ?? [], day, period);
                   return (
                     <div key={day.toISOString()} className="min-h-[54px]">
+                      {cellAppointments.length > 0 && (
+                        <div className="space-y-1 mb-1">
+                          {cellAppointments.map((a) => (
+                            <div
+                              key={a._id}
+                              className="rounded border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] text-purple-800 truncate"
+                            >
+                              <span className="font-semibold">{a.isRecurring ? a.recurringTimeHHMM : format(new Date(a.startTime), "HH:mm")}</span>
+                              <span className="ml-1 truncate">{a.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {cellLessons.length === 0 ? (
                         <div className="h-full min-h-[54px] rounded border border-dashed border-border/30" />
                       ) : (

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
 import { UserButton } from "@clerk/clerk-react";
 import {
   LayoutDashboard,
@@ -47,8 +45,6 @@ export default function Sidebar({
   onToggleCollapsed: () => void;
 }) {
   const location = useLocation();
-  const subjects = useQuery(api.lessons.getSubjects);
-  const [subjectsOpen, setSubjectsOpen] = useState(true);
 
   return (
     <aside
@@ -120,43 +116,6 @@ export default function Sidebar({
             })}
           </div>
         ))}
-
-        {!collapsed && subjects && subjects.length > 0 && (
-          <div className="space-y-1 border-t border-sidebar-border pt-4">
-            <button
-              type="button"
-              onClick={() => setSubjectsOpen((current) => !current)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm font-semibold text-sidebar-text hover:text-white hover:bg-white/5 rounded transition-colors"
-            >
-              <span>Subjects</span>
-              <ChevronRight
-                size={14}
-                className={clsx("transition-transform", subjectsOpen ? "rotate-90" : "rotate-0")}
-              />
-            </button>
-            {subjectsOpen && (
-              <div className="space-y-1 px-3">
-                {subjects.map((subject) => (
-                  <NavLink
-                    key={subject}
-                    to={`/notebook/${encodeURIComponent(subject)}`}
-                    className={({ isActive }) =>
-                      clsx(
-                        "flex items-center gap-2.5 px-3 py-1.5 rounded text-sm transition-colors",
-                        isActive
-                          ? "bg-white/10 text-white"
-                          : "text-sidebar-text hover:text-white hover:bg-white/5"
-                      )
-                    }
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-sidebar-text/50 flex-shrink-0" />
-                    <span className="truncate">{subject}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </nav>
 
       {/* Bottom */}

@@ -227,7 +227,7 @@ export default function LessonDetailPage() {
                     {t.title}
                   </p>
                   {t.dueDate && (
-                    <span className="text-xs text-ink-light">{format(new Date(t.dueDate), "d MMM")}</span>
+                    <span className="text-xs text-ink-light">{format(new Date(t.dueDate), "d MMM · HH:mm")}</span>
                   )}
                   <button onClick={() => removeTask({ id: t._id })} className="p-1 rounded text-ink-light hover:text-danger transition-colors">
                     <Trash2 size={13} />
@@ -271,7 +271,7 @@ function AddTaskModal({
     <Modal open={open} onClose={onClose} title="Add task">
       <div className="space-y-3">
         <Input label="Task" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Study chapter 4" />
-        <Input label="Due date (optional)" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        <Input label="Due date & time (optional)" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-ink-muted">Priority</label>
           <div className="flex gap-2">

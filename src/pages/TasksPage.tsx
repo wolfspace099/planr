@@ -86,7 +86,7 @@ export default function TasksPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Badge color={PRIORITY_COLORS[t.priority] as any}>{t.priority}</Badge>
-                  {t.dueDate && <span className="text-xs text-ink-light">{format(new Date(t.dueDate), "d MMM")}</span>}
+                  {t.dueDate && <span className="text-xs text-ink-light">{format(new Date(t.dueDate), "d MMM · HH:mm")}</span>}
                 </div>
                 <button onClick={() => remove({ id: t._id })} className="p-1 rounded text-ink-light hover:text-danger transition-colors">
                   <Trash2 size={13} />
@@ -108,7 +108,7 @@ export default function TasksPage() {
               {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <Input label="Due date (optional)" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <Input label="Due date & time (optional)" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-ink-muted">Priority</label>
             <div className="flex gap-2">
