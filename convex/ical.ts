@@ -41,7 +41,7 @@ const SUBJECT_MAP: Record<string, string> = {
   lob: "LOB", thea: "Theater", drama: "Drama",
 };
 
-function extractZermeloSubject(raw: string): string {
+function extractZermeloSubject(raw: string): { subject: string; location: string | undefined } {
   let s = decodeIcalText(raw).trim();
 
   // 1. Strip leading time: "09:20 "
@@ -50,19 +50,30 @@ function extractZermeloSubject(raw: string): string {
   // 2. Strip all flag tokens: [>], [!], [o], [x], etc.
   s = s.replace(/(\[[^\]]*\]\s*)+/g, "").trim();
 
-  // 3. Strip room code — first token that contains a digit (w107, wsh1, A.101, lok3)
+  // 3. Extract room code — first token that contains a digit (w107, wsh1, A.101, lok3)
+  let location: string | undefined;
   const tokens = s.split(/\s+/);
   const roomIdx = tokens.findIndex((t) => /\d/.test(t));
-  if (roomIdx !== -1) tokens.splice(roomIdx, 1);
+  if (roomIdx !== -1) {
+    location = tokens[roomIdx];
+    tokens.splice(roomIdx, 1);
+  }
 
   // 4. First remaining token is the subject abbreviation; last token is class.lesson (ignored)
   const code = tokens[0]?.toLowerCase() ?? "";
-  if (!code) return decodeIcalText(raw);
+  let subject = code;
+  if (!code) {
+    subject = decodeIcalText(raw);
+  } else {
+    const mapped = SUBJECT_MAP[code];
+    if (mapped) {
+      subject = mapped;
+    } else {
+      subject = code.toUpperCase();
+    }
+  }
 
-  const mapped = SUBJECT_MAP[code];
-  if (mapped) return mapped;
-
-  return code.toUpperCase();
+  return { subject, location };
 }
 
 function parseIcalDate(dtStr: string): number {
@@ -90,16 +101,17 @@ function parseIcal(icalText: string): Array<{
     const summary = extractField(text, "SUMMARY");
     const dtstart = extractField(text, "DTSTART");
     const dtend = extractField(text, "DTEND");
-    const location = extractField(text, "LOCATION");
+    const locationField = extractField(text, "LOCATION");
     if (!uid || !summary || !dtstart || !dtend) continue;
     // Skip lessons marked as cancelled with [x]
     if (/\[x\]/i.test(summary)) continue;
+    const { subject, location: roomFromSummary } = extractZermeloSubject(summary);
     results.push({
       icalUid: uid,
-      subject: extractZermeloSubject(summary),
+      subject,
       startTime: parseIcalDate(dtstart),
       endTime: parseIcalDate(dtend),
-      location: location ? decodeIcalText(location) : undefined,
+      location: locationField ? decodeIcalText(locationField) : roomFromSummary,
     });
   }
   return results;
