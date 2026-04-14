@@ -92,7 +92,6 @@ export default function TodayPage() {
     return isToday(d);
   }) ?? [];
 
-  // Build today's appointments: one-off today + recurring matching day-of-week
   const todayAppts = (appointments ?? []).filter((a) => {
     if (a.isRecurring) {
       return a.recurringDayOfWeek === now.getDay();
@@ -103,8 +102,7 @@ export default function TodayPage() {
   const completedIds = new Set(completions?.map((c) => c.habitId) ?? []);
 
   const hour = now.getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
     <div className="animate-fade-in">
@@ -117,6 +115,7 @@ export default function TodayPage() {
       </div>
 
       <div className="grid gap-5 md:grid-cols-[200px_1fr] lg:grid-cols-[260px_minmax(0,1fr)] mb-5">
+        {/* Left Sidebar: Date & Lesson Summary */}
         <div className="rounded-3xl border border-border bg-surface p-3 md:p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
@@ -162,6 +161,7 @@ export default function TodayPage() {
           </div>
         </div>
 
+        {/* Right Main Content */}
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Today's schedule */}
@@ -223,95 +223,99 @@ export default function TodayPage() {
                 )}
               </div>
             </div>
-        <div>
-          <SectionTitle icon={<ClipboardList size={13} />} label="Homework due today" />
-          <div className="space-y-1.5">
-            {homework?.map((hw) => (
-              <CheckRow
-                key={hw._id}
-                done={hw.done}
-                label={hw.title}
-                sub={hw.subject}
-                onToggle={() => toggleHw({ id: hw._id })}
-              />
-            ))}
-            {(homework?.length ?? 0) === 0 && <Empty label="Nothing due today" />}
-          </div>
-        </div>
 
-        {/* Tasks */}
-        <div>
-          <SectionTitle icon={<CheckSquare size={13} />} label="Tasks" />
-          <div className="space-y-1.5">
-            {todayTasks.slice(0, 6).map((t) => (
-              <CheckRow
-                key={t._id}
-                done={t.done}
-                label={t.title}
-                sub={t.subject}
-                priority={t.priority}
-                onToggle={() => toggleTask({ id: t._id })}
-              />
-            ))}
-            {todayTasks.length === 0 && <Empty label="No tasks" />}
-          </div>
-        </div>
+            {/* Homework */}
+            <div>
+              <SectionTitle icon={<ClipboardList size={13} />} label="Homework due today" />
+              <div className="space-y-1.5">
+                {homework?.map((hw) => (
+                  <CheckRow
+                    key={hw._id}
+                    done={hw.done}
+                    label={hw.title}
+                    sub={hw.subject}
+                    onToggle={() => toggleHw({ id: hw._id })}
+                  />
+                ))}
+                {(homework?.length ?? 0) === 0 && <Empty label="Nothing due today" />}
+              </div>
+            </div>
 
-        {/* Tests today */}
-        {todayTests.length > 0 && (
-          <div className="col-span-2">
-            <SectionTitle icon={<FlaskConical size={13} />} label="Tests today" />
-            <div className="space-y-1.5">
-              {todayTests.map((t) => (
-                <div key={t._id} className="flex items-center gap-3 p-3 bg-danger-light border border-red-200 rounded-lg">
-                  <FlaskConical size={14} className="text-danger flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm text-ink">{t.topic}</p>
-                    <p className="text-xs text-ink-muted">{t.subject}</p>
-                  </div>
+            {/* Tasks */}
+            <div>
+              <SectionTitle icon={<CheckSquare size={13} />} label="Tasks" />
+              <div className="space-y-1.5">
+                {todayTasks.slice(0, 6).map((t) => (
+                  <CheckRow
+                    key={t._id}
+                    done={t.done}
+                    label={t.title}
+                    sub={t.subject}
+                    priority={t.priority}
+                    onToggle={() => toggleTask({ id: t._id })}
+                  />
+                ))}
+                {todayTasks.length === 0 && <Empty label="No tasks" />}
+              </div>
+            </div>
+
+            {/* Tests today */}
+            {todayTests.length > 0 && (
+              <div className="col-span-2">
+                <SectionTitle icon={<FlaskConical size={13} />} label="Tests today" />
+                <div className="space-y-1.5">
+                  {todayTests.map((t) => (
+                    <div key={t._id} className="flex items-center gap-3 p-3 bg-danger-light border border-red-200 rounded-lg">
+                      <FlaskConical size={14} className="text-danger flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm text-ink">{t.topic}</p>
+                        <p className="text-xs text-ink-muted">{t.subject}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Habits */}
+            {(habits?.length ?? 0) > 0 && (
+              <div className="col-span-2">
+                <SectionTitle icon={<Repeat2 size={13} />} label="Today's habits" />
+                <div className="flex flex-wrap gap-2">
+                  {habits?.filter((h) => h.active).map((h) => {
+                    const done = completedIds.has(h._id);
+                    return (
+                      <button
+                        key={h._id}
+                        onClick={() => toggleHabit({ habitId: h._id, date: todayStr })}
+                        className={clsx(
+                          "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all",
+                          done
+                            ? "bg-success-light border-green-200 text-success"
+                            : "bg-surface border-border text-ink-muted hover:border-border-strong"
+                        )}
+                      >
+                        {h.emoji && <span>{h.emoji}</span>}
+                        <span>{h.name}</span>
+                        {done && <span className="text-xs">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Notebook Section */}
+            <div className="col-span-2">
+              <SectionTitle icon={<BookOpen size={13} />} label="Recent notes" />
+              <Link
+                to="/notebook"
+                className="block p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all text-sm text-ink-muted"
+              >
+                Open notebook →
+              </Link>
             </div>
           </div>
-        )}
-
-        {/* Habits */}
-        {(habits?.length ?? 0) > 0 && (
-          <div className="col-span-2">
-            <SectionTitle icon={<Repeat2 size={13} />} label="Today's habits" />
-            <div className="flex flex-wrap gap-2">
-              {habits?.filter((h) => h.active).map((h) => {
-                const done = completedIds.has(h._id);
-                return (
-                  <button
-                    key={h._id}
-                    onClick={() => toggleHabit({ habitId: h._id, date: todayStr })}
-                    className={clsx(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all",
-                      done
-                        ? "bg-success-light border-green-200 text-success"
-                        : "bg-surface border-border text-ink-muted hover:border-border-strong"
-                    )}
-                  >
-                    {h.emoji && <span>{h.emoji}</span>}
-                    <span>{h.name}</span>
-                    {done && <span className="text-xs">✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Upcoming lessons from notebook */}
-        <div className="col-span-2">
-          <SectionTitle icon={<BookOpen size={13} />} label="Recent notes" />
-          <Link
-            to="/notebook"
-            className="block p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all text-sm text-ink-muted"
-          >
-            Open notebook →
-          </Link>
         </div>
       </div>
     </div>
