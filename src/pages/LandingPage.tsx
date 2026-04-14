@@ -3,69 +3,56 @@ import { Button, Badge } from "../components/ui/primitives";
 import {
   CalendarClock,
   ClipboardList,
-  BookOpen,
   CheckSquare,
   FlaskConical,
-  Repeat2,
   LayoutDashboard,
+  BookOpen,
 } from "lucide-react";
 
-const benefits = [
+const features = [
   {
     icon: <CalendarClock size={18} />,
-    title: "See every school event",
+    title: "Always visible school events",
     description:
-      "Lessons, appointments, and study sessions live together in one clean school calendar.",
+      "Lessons and appointments share the same calendar, so you never lose track of where your day goes.",
   },
   {
     icon: <ClipboardList size={18} />,
-    title: "Homework and deadlines",
+    title: "Homework with deadlines",
     description:
-      "Track assignments and due dates without switching apps or losing overview.",
+      "Keep every assignment in one place and see due dates where they matter most.",
   },
   {
     icon: <FlaskConical size={18} />,
-    title: "Study plans for tests",
+    title: "Smart test prep",
     description:
-      "Automatically schedule test prep so your review shows up when you need it.",
+      "Plan review sessions automatically so studying happens ahead of exams, not at the last minute.",
   },
   {
     icon: <CheckSquare size={18} />,
-    title: "Tasks with timing",
+    title: "Tasks that fit your day",
     description:
-      "Set tasks at the right time and keep them visible alongside your day.",
-  },
-  {
-    icon: <BookOpen size={18} />,
-    title: "Lesson-focused flow",
-    description:
-      "Open lessons, notes, homework and tests from the same school-friendly workspace.",
-  },
-  {
-    icon: <Repeat2 size={18} />,
-    title: "Daily routines made simple",
-    description:
-      "Stay on top of habits and morning routines without extra clutter.",
+      "Schedule tasks with times and keep them visible with lessons and events.",
   },
 ];
 
 const steps = [
   {
-    title: "Capture your schedule",
+    title: "Put your classes in place",
     description:
-      "Import lessons or add school events manually, then see them alongside appointments and homework.",
+      "Import lessons or add classes manually to create a school-first timetable.",
     icon: <LayoutDashboard size={18} />,
   },
   {
-    title: "Plan test prep",
+    title: "Add tests and homework",
     description:
-      "Create a test and let planr schedule study blocks automatically before the exam.",
-    icon: <FlaskConical size={18} />,
+      "Plan tests, homework and tasks in one view so nothing slips through the cracks.",
+    icon: <BookOpen size={18} />,
   },
   {
-    title: "Stay on top of tasks",
+    title: "Watch your day stay balanced",
     description:
-      "Use timed task entries and deadline reminders so nothing disappears from your day.",
+      "See prep work, lessons and appointments together with a clear, calm layout.",
     icon: <CheckSquare size={18} />,
   },
 ];
@@ -76,7 +63,7 @@ const quotes = [
     author: "Mia, 11th grade",
   },
   {
-    text: "The calendar view makes it easy to see study sessions next to my lessons.",
+    text: "The planner view feels calm and easy to use during busy school weeks.",
     author: "Alex, 10th grade",
   },
 ];
@@ -85,20 +72,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg text-ink">
       <div className="max-w-6xl mx-auto px-6 py-6 lg:px-8">
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-10">
           <div className="text-2xl font-semibold text-ink">planr</div>
           <SignInButton mode="modal">
             <Button variant="secondary" size="sm">Login</Button>
           </SignInButton>
         </div>
-        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center">
+
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-start">
           <div>
             <Badge color="purple">School planner for students</Badge>
-            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
-              Keep lessons, tests, homework and appointments in one calm planner.
+            <h1 className="mt-6 text-5xl font-semibold tracking-tight text-ink sm:text-6xl leading-tight">
+              The planner that keeps school, study and life in sync.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-ink-muted">
-              planr is built for school routines: it blends your timetable with assignments, schedules study sessions automatically, and keeps appointments visible day and night.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-ink-muted">
+              planr brings lessons, homework, tests, and appointments into one calm school planner so you can focus on learning instead of chasing dates.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
@@ -106,89 +94,78 @@ export default function LandingPage() {
                 <Button variant="primary" size="md">Login</Button>
               </SignInButton>
               <a href="#features">
-                <Button variant="secondary" size="md">Learn more</Button>
+                <Button variant="secondary" size="md">See the features</Button>
               </a>
+            </div>
+
+            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-3xl border border-border bg-surface p-4 text-sm text-ink-light">
+                <p className="font-semibold text-ink">Lesson-first calendar</p>
+                <p className="mt-3">Study sessions and appointments appear where school happens.</p>
+              </div>
+              <div className="rounded-3xl border border-border bg-surface p-4 text-sm text-ink-light">
+                <p className="font-semibold text-ink">Timely task planning</p>
+                <p className="mt-3">Due dates, times, and tasks stay visible in one list.</p>
+              </div>
+              <div className="rounded-3xl border border-border bg-surface p-4 text-sm text-ink-light">
+                <p className="font-semibold text-ink">Test prep built in</p>
+                <p className="mt-3">Let planr schedule review sessions before exam week.</p>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border bg-surface p-7 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Why it works</p>
-            <h2 className="mt-4 text-2xl font-semibold text-ink">Designed for modern school life</h2>
-            <p className="mt-3 text-sm leading-7 text-ink-light">
-              planr combines the clarity of a timetable with the power of a task manager, so you can stay ahead of tests without juggling different tools.
+          <div className="rounded-[36px] border border-border bg-gradient-to-br from-[#eff2ff] to-[#f9f7ff] p-8 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Built for school</p>
+            <h2 className="mt-4 text-3xl font-semibold text-ink">A planner with a calm, class-ready feel</h2>
+            <p className="mt-4 text-sm leading-7 text-ink-light">
+              planr is designed to make your day easier — not busier. Keep lessons visible, appointments clear, and study time ready when you need it.
             </p>
 
             <div className="mt-6 space-y-4">
-              <div className="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
-                <p className="text-sm font-semibold text-ink">Automatic study sessions</p>
-                <p className="mt-1 text-xs text-ink-light">
-                  Create test review blocks that appear before exam dates, just like a smart calendar assistant.
-                </p>
+              <div className="rounded-3xl border border-border bg-white p-5">
+                <p className="text-sm font-semibold text-ink">Always see school and life together</p>
+                <p className="mt-2 text-sm text-ink-light">Lessons, appointments, and prep blocks share the same calendar so nothing slips away.</p>
               </div>
-              <div className="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
-                <p className="text-sm font-semibold text-ink">School-friendly layout</p>
-                <p className="mt-1 text-xs text-ink-light">
-                  Lessons stay visible in your day view, and appointments always sit on top of your schedule.
-                </p>
+              <div className="rounded-3xl border border-border bg-white p-5">
+                <p className="text-sm font-semibold text-ink">No extra apps needed</p>
+                <p className="mt-2 text-sm text-ink-light">Homework, tests, tasks and habits all live in one easy-to-use school planner.</p>
               </div>
             </div>
           </div>
         </div>
 
-        <section className="mt-16">
+        <section className="mt-20" id="features">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Highlights</p>
-              <h2 className="mt-3 text-3xl font-semibold text-ink">Everything you need for a better school day</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Features</p>
+              <h2 className="mt-3 text-3xl font-semibold text-ink">Everything you need for a sharper school day</h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-ink-light">
-              planr keeps your classes, appointments and study time together, so you can stop switching tabs and start staying on top of work.
+              planr is built around student routines — classes, exams, homework and appointments all in one place.
             </p>
           </div>
 
-          <div className="grid gap-4 mt-8 sm:grid-cols-2 lg:grid-cols-3">
-            {benefits.map((benefit) => (
-              <div key={benefit.title} className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition hover:border-accent/30">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                  {benefit.icon}
+          <div className="grid gap-4 mt-8 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => (
+              <div key={feature.title} className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition hover:border-accent/30">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  {feature.icon}
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-ink">{benefit.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-ink-light">{benefit.description}</p>
+                <h3 className="mt-4 text-lg font-semibold text-ink">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-light">{feature.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-16 rounded-3xl border border-border bg-white/70 p-8 shadow-sm">
+        <section className="mt-20 rounded-3xl border border-border bg-white/70 p-8 shadow-sm">
           <div className="grid gap-6 lg:grid-cols-2 lg:items-center">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Why students love it</p>
-              <h2 className="mt-3 text-3xl font-semibold text-ink">Less friction, more focus</h2>
-              <p className="mt-4 text-sm leading-7 text-ink-light">
-                planr cuts down the noise from multiple apps. One schedule, one task list, one test planner — all tuned for school days and study time.
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl border border-border bg-surface p-5">
-                <p className="text-sm font-semibold text-ink">Fewer missed deadlines</p>
-                <p className="mt-2 text-xs text-ink-light">Tasks and homework show up where you need them, with clear due times.</p>
-              </div>
-              <div className="rounded-3xl border border-border bg-surface p-5">
-                <p className="text-sm font-semibold text-ink">Smarter exam prep</p>
-                <p className="mt-2 text-xs text-ink-light">Schedule learning sessions for tests automatically so your review is built into your calendar.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-16" id="features">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">How it works</p>
-              <h2 className="mt-3 text-3xl font-semibold text-ink">From schedule to success</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-ink">A planner for busy students</h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-ink-light">
-              Use planr to organize school time, keep deadlines visible, and build study sessions in the same calendar you already trust.
+              Add your lessons, schedule your tests, and let planr help you balance deadlines, tasks and appointments in a single view.
             </p>
           </div>
 
@@ -205,7 +182,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-16 rounded-3xl border border-border bg-surface p-8 shadow-sm">
+        <section className="mt-20 rounded-3xl border border-border bg-surface p-8 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Student feedback</p>
@@ -226,11 +203,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-16 rounded-3xl border border-border bg-surface p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Ready to simplify school?</p>
-          <h2 className="mt-3 text-3xl font-semibold text-ink">Get started with planr today</h2>
+        <section className="mt-20 rounded-3xl border border-border bg-surface p-8 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-muted">Ready for less stress?</p>
+          <h2 className="mt-3 text-3xl font-semibold text-ink">Make your school day feel easier</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-ink-light">
-            Login with one click, add your first lesson or appointment, and watch your school day become easier to manage.
+            Login with one click, add your first lesson, and let planr take care of the rest.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <SignInButton mode="modal">
