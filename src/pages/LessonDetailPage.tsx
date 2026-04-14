@@ -16,7 +16,6 @@ export default function LessonDetailPage() {
   const lessonId = id as Id<"lessons">;
   const [tab, setTab] = useState<Tab>("notes");
   const [saved, setSaved] = useState(false);
-  const [hwModal, setHwModal] = useState(false);
   const [taskModal, setTaskModal] = useState(false);
 
   const lesson = useQuery(api.lessons.getById, { id: lessonId });
@@ -29,7 +28,6 @@ export default function LessonDetailPage() {
   const removeHw = useMutation(api.homework.remove);
   const toggleTask = useMutation(api.tasks.toggle);
   const removeTask = useMutation(api.tasks.remove);
-  const createHw = useMutation(api.homework.create);
   const createTask = useMutation(api.tasks.create);
 
   const handleSaveNote = async (html: string) => {
@@ -125,20 +123,10 @@ export default function LessonDetailPage() {
       {/* Homework tab */}
       {tab === "homework" && (
         <div>
-          <div className="flex justify-end mb-4">
-            <Button variant="primary" size="sm" onClick={() => setHwModal(true)}>
-              <Plus size={13} /> Add homework
-            </Button>
-          </div>
           {(homework?.length ?? 0) === 0 ? (
             <EmptyState
               icon={<ClipboardList size={28} />}
               title="No homework for this lesson"
-              action={
-                <Button size="sm" onClick={() => setHwModal(true)}>
-                  Add homework
-                </Button>
-              }
             />
           ) : (
             <div className="space-y-2">
@@ -236,11 +224,6 @@ export default function LessonDetailPage() {
       )}
 
       {/* Modals */}
-      <AddHomeworkModal
-        open={hwModal}
-        onClose={() => setHwModal(false)}
-        onAdd={(data) => createHw({ lessonId, subject: lesson.subject, ...data })}
-      />
       <AddTaskModal
         open={taskModal}
         onClose={() => setTaskModal(false)}
@@ -250,37 +233,6 @@ export default function LessonDetailPage() {
   );
 }
 
-function AddHomeworkModal({
-  open, onClose, onAdd,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (data: any) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
-
-  const submit = () => {
-    if (!title.trim()) return;
-    onAdd({ title, description: description || undefined, dueDate: new Date(dueDate).getTime() });
-    setTitle(""); setDescription(""); onClose();
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} title="Add homework">
-      <div className="space-y-3">
-        <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Exercise 1, 2, 3" />
-        <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Exercise 1, 2 and 3 on page 42" rows={3} />
-        <Input label="Due date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-        <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={submit}>Add</Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
 
 function AddTaskModal({
   open, onClose, onAdd,

@@ -1,25 +1,40 @@
 // HomeworkPage.tsx
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format, isPast } from "date-fns";
-import { Plus, Trash2, ClipboardList } from "lucide-react";
+import { Plus, Trash2, ClipboardList, X } from "lucide-react";
 import { PageHeader, Button, Modal, Input, Textarea, EmptyState, Badge } from "../components/ui/primitives";
 import clsx from "clsx";
 
 export function HomeworkPage() {
   const homework = useQuery(api.homework.getAll);
   const subjects = useQuery(api.lessons.getSubjects);
+  const lessons = useQuery(api.lessons.getAll);
   const toggle = useMutation(api.homework.toggle);
   const remove = useMutation(api.homework.remove);
   const create = useMutation(api.homework.create);
 
   const [modal, setModal] = useState(false);
+  const [lessonModal, setLessonModal] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
   const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filter, setFilter] = useState<"all" | "pending" | "done">("pending");
+
+  const lessonsByDay = useMemo(() => {
+    return (lessons ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.startTime - b.startTime)
+      .reduce((acc: Record<string, any[]>, lesson: any) => {
+        const day = format(new Date(lesson.startTime), "EEEE d MMM");
+        if (!acc[day]) acc[day] = [];
+        acc[day].push(lesson);
+        return acc;
+      }, {});
+  }, [lessons]);
 
   const filtered = (homework ?? []).filter((h) => {
     if (filter === "pending") return !h.done;
@@ -28,9 +43,20 @@ export function HomeworkPage() {
   }).sort((a, b) => a.dueDate - b.dueDate);
 
   const submit = async () => {
-    if (!title.trim() || !subject) return;
-    await create({ title, description: description || undefined, subject, dueDate: new Date(dueDate).getTime() });
-    setTitle(""); setDescription(""); setModal(false);
+    const effectiveSubject = selectedLesson?.subject ?? subject;
+    if (!title.trim() || !effectiveSubject) return;
+    await create({
+      lessonId: selectedLesson?._id,
+      title,
+      description: description || undefined,
+      subject: effectiveSubject,
+      dueDate: new Date(dueDate).getTime(),
+    });
+    setTitle("");
+    setDescription("");
+    setSubject("");
+    setSelectedLesson(null);
+    setModal(false);
   };
 
   return (
@@ -98,22 +124,102 @@ export function HomeworkPage() {
         <div className="space-y-3">
           <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Exercise 1, 2, 3" />
           <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Exercises 1–5 on page 42" rows={3} />
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-ink-muted">Subject</label>
-            <select value={subject} onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
-              <option value="">Select subject…</option>
-              {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div className="space-y-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-medium text-ink-muted">Lesson</label>
+                  <p className="text-sm text-ink">{selectedLesson ? `${selectedLesson.subject} · ${format(new Date(selectedLesson.startTime), "EEEE d MMM · HH:mm")}` : "No lesson selected"}</p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setLessonModal(true)}>
+                  Select lesson
+                </Button>
+              </div>
+              {selectedLesson && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-xs text-danger"
+                  onClick={() => {
+                    setSelectedLesson(null);
+                    setSubject("");
+                  }}
+                >
+                  <X size={12} /> Clear selected lesson
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-ink-muted">Subject</label>
+              <select value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!!selectedLesson}
+                className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
+                <option value="">Select subject…</option>
+                {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
           <Input label="Due date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
             <Button variant="primary" onClick={submit}>Add</Button>
           </div>
+          <LessonPickerModal
+            open={lessonModal}
+            onClose={() => setLessonModal(false)}
+            lessonsByDay={lessonsByDay}
+            onSelect={(lesson) => {
+              setSelectedLesson(lesson);
+              setSubject(lesson.subject);
+              setLessonModal(false);
+            }}
+          />
         </div>
       </Modal>
     </div>
+  );
+}
+
+function LessonPickerModal({
+  open,
+  onClose,
+  lessonsByDay,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lessonsByDay: Record<string, any[]>;
+  onSelect: (lesson: any) => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="Select lesson">
+      <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+        {Object.entries(lessonsByDay).length === 0 ? (
+          <p className="text-sm text-ink-muted">No lessons available to assign.</p>
+        ) : (
+          Object.entries(lessonsByDay).map(([day, lessons]) => (
+            <div key={day} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{day}</p>
+              <div className="space-y-2">
+                {lessons.map((lesson) => (
+                  <button
+                    key={lesson._id}
+                    onClick={() => onSelect(lesson)}
+                    className="w-full text-left px-3 py-2 rounded border border-border bg-surface hover:border-accent hover:bg-accent/5 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-ink">{lesson.subject}</p>
+                        <p className="text-xs text-ink-muted">{format(new Date(lesson.startTime), "HH:mm")} – {format(new Date(lesson.endTime), "HH:mm")}</p>
+                      </div>
+                      {lesson.location && <span className="text-xs text-ink-muted">{lesson.location}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
   );
 }
 

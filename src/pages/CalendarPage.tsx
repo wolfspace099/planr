@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
@@ -103,6 +103,14 @@ export default function CalendarPage() {
   const lessons     = useQuery(api.lessons.getRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
   const tests       = useQuery(api.misc.getTests);
   const appointments = useQuery(api.misc.getAppointments);
+  const homework     = useQuery(api.homework.getAll);
+
+  const homeworkLessonIds = useMemo(
+    () => new Set((homework ?? [])
+      .filter((h: any) => h.lessonId)
+      .map((h: any) => String(h.lessonId))),
+    [homework]
+  );
 
   const weekTests = (tests ?? []).filter((t) => {
     const d = new Date(t.date);

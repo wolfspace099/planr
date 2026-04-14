@@ -56,6 +56,16 @@ export const getSubjects = query({
   },
 });
 
+export const getAll = query({
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("lessons")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
 export const setChapter = mutation({
   args: { lessonId: v.id("lessons"), chapterId: v.optional(v.id("chapters")) },
   handler: async (ctx, { lessonId, chapterId }) => {
