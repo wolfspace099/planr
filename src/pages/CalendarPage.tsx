@@ -112,6 +112,13 @@ export default function CalendarPage() {
     [homework]
   );
 
+  const testLessonIds = useMemo(
+    () => new Set((tests ?? [])
+      .filter((t: any) => t.lessonId)
+      .map((t: any) => String(t.lessonId))),
+    [tests]
+  );
+
   const weekTests = (tests ?? []).filter((t) => {
     const d = new Date(t.date);
     return d >= weekStart && d <= weekEnd;
@@ -232,9 +239,24 @@ export default function CalendarPage() {
                                 <span className="text-[11px] font-semibold text-ink leading-tight">
                                   {subjectDisplay(l.subject)}
                                 </span>
-                                {homeworkLessonIds.has(String(l._id)) && (
-                                  <span className="h-2.5 w-2.5 rounded-full bg-purple-500" title="Homework assigned" />
-                                )}
+                                <div className="flex items-center gap-1">
+                                  {homeworkLessonIds.has(String(l._id)) && (
+                                    <span className="h-2.5 w-2.5 rounded-full bg-purple-500" title="Homework assigned" />
+                                  )}
+                                  {testLessonIds.has(String(l._id)) && (
+                                    <span
+                                      className="block"
+                                      title="Test assigned"
+                                      style={{
+                                        width: 0,
+                                        height: 0,
+                                        borderLeft: "5px solid transparent",
+                                        borderRight: "5px solid transparent",
+                                        borderBottom: "8px solid #7c3aed",
+                                      }}
+                                    />
+                                  )}
+                                </div>
                               </div>
                               {l.location && (
                                 <span className="text-[10px] text-ink-muted leading-tight flex items-center gap-0.5">
