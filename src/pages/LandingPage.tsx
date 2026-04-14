@@ -53,7 +53,13 @@ const benefits = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg text-ink">
-      <div className="max-w-6xl mx-auto px-6 py-16 lg:px-8">
+      <div className="max-w-6xl mx-auto px-6 py-6 lg:px-8">
+        <div className="flex items-center justify-between mb-12">
+          <div className="text-2xl font-semibold text-ink">planr</div>
+          <SignInButton mode="modal">
+            <Button variant="secondary" size="sm">Login</Button>
+          </SignInButton>
+        </div>
         <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center">
           <div>
             <Badge color="purple">School planner for students</Badge>
@@ -68,9 +74,9 @@ export default function LandingPage() {
               <SignInButton mode="modal">
                 <Button variant="primary" size="md">Login</Button>
               </SignInButton>
-              <Link to="/landing">
+              <a href="#features">
                 <Button variant="secondary" size="md">Learn more</Button>
-              </Link>
+              </a>
             </div>
           </div>
 
