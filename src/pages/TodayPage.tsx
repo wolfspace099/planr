@@ -3,7 +3,7 @@ import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { format, startOfDay, endOfDay, isToday } from "date-fns";
 import { Link } from "react-router-dom";
-import { CheckSquare, BookOpen, ClipboardList, FlaskConical, MapPin, Repeat2 } from "lucide-react";
+import { CheckSquare, BookOpen, ClipboardList, FlaskConical, MapPin, Repeat2, HandPalm } from "lucide-react";
 import { Badge } from "../components/ui/primitives";
 import clsx from "clsx";
 
@@ -101,8 +101,9 @@ export default function TodayPage() {
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <p className="text-sm text-ink-muted mb-1">{format(now, "EEEE, MMMM d")}</p>
-        <h1 className="text-xl md:text-2xl font-semibold text-ink tracking-tight">
-          {greeting}, {user?.firstName ?? "there"} 👋
+        <h1 className="text-xl md:text-2xl font-semibold text-ink tracking-tight inline-flex items-center gap-2">
+          {greeting}, {user?.firstName ?? "there"}
+          <HandPalm size={22} className="text-ink-light" aria-hidden="true" />
         </h1>
       </div>
 
