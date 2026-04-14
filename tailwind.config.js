@@ -27,10 +27,10 @@ export default {
           light: "#9C9C94",
         },
         accent: {
-          DEFAULT: "#3B6FFF",
-          hover: "#2558F0",
-          light: "#EDF2FF",
-          border: "#C5D4FF",
+          DEFAULT: "#8B5CF6",
+          hover: "#7C3AED",
+          light: "#F3E8FF",
+          border: "#D8B4FE",
         },
         success: {
           DEFAULT: "#16A34A",

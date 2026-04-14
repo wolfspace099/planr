@@ -9,7 +9,6 @@ import clsx from "clsx";
 
 export function HomeworkPage() {
   const homework = useQuery(api.homework.getAll);
-  const subjects = useQuery(api.lessons.getSubjects);
   const lessons = useQuery(api.lessons.getAll);
   const toggle = useMutation(api.homework.toggle);
   const remove = useMutation(api.homework.remove);
@@ -20,8 +19,6 @@ export function HomeworkPage() {
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [subject, setSubject] = useState("");
-  const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filter, setFilter] = useState<"all" | "pending" | "done">("pending");
 
   const lessonsByDay = useMemo(() => {
@@ -43,18 +40,16 @@ export function HomeworkPage() {
   }).sort((a, b) => a.dueDate - b.dueDate);
 
   const submit = async () => {
-    const effectiveSubject = selectedLesson?.subject ?? subject;
-    if (!title.trim() || !effectiveSubject) return;
+    if (!title.trim() || !selectedLesson) return;
     await create({
-      lessonId: selectedLesson?._id,
+      lessonId: selectedLesson._id,
       title,
       description: description || undefined,
-      subject: effectiveSubject,
-      dueDate: new Date(dueDate).getTime(),
+      subject: selectedLesson.subject,
+      dueDate: selectedLesson.startTime,
     });
     setTitle("");
     setDescription("");
-    setSubject("");
     setSelectedLesson(null);
     setModal(false);
   };
@@ -141,26 +136,17 @@ export function HomeworkPage() {
                   className="inline-flex items-center gap-1 text-xs text-danger"
                   onClick={() => {
                     setSelectedLesson(null);
-                    setSubject("");
                   }}
                 >
                   <X size={12} /> Clear selected lesson
                 </button>
               )}
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-ink-muted">Subject</label>
-              <select value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!!selectedLesson}
-                className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
-                <option value="">Select subject…</option>
-                {subjects?.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            <p className="text-xs text-ink-muted">Homework will be assigned to the selected lesson, using its subject and date.</p>
           </div>
-          <Input label="Due date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={submit}>Add</Button>
+            <Button variant="primary" onClick={submit} disabled={!selectedLesson || !title.trim()}>Add</Button>
           </div>
           <LessonPickerModal
             open={lessonModal}
@@ -168,7 +154,6 @@ export function HomeworkPage() {
             lessonsByDay={lessonsByDay}
             onSelect={(lesson) => {
               setSelectedLesson(lesson);
-              setSubject(lesson.subject);
               setLessonModal(false);
             }}
           />

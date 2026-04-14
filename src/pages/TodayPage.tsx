@@ -61,68 +61,113 @@ export default function TodayPage() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-        {/* Today's schedule */}
-        <div className="col-span-2">
-          <SectionTitle icon={<Clock size={13} />} label="Schedule" />
+      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] mb-5">
+        <div className="rounded-3xl border border-border bg-surface p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Today</p>
+              <p className="text-4xl font-semibold text-ink mt-1">{format(now, "d")}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-ink-muted uppercase tracking-wider">{format(now, "EEE")}</p>
+              <p className="text-sm text-ink">{format(now, "MMMM")}</p>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            {[...(lessons ?? []), ...todayAppts]
-              .sort((a, b) => a.startTime - b.startTime)
-              .map((item) => {
-                const isLesson = "icalUid" in item;
-                if (isLesson) {
-                  const l = item as any;
-                  return (
-                    <Link key={l._id} to={`/lesson/${l._id}`}>
-                      <div className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all group">
-                        <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
-                          {timeStr(l.startTime)}
-                        </div>
-                        <div className="w-1 h-8 rounded-full bg-accent/70 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-ink truncate group-hover:text-accent transition-colors">
-                            {l.subject}
+            {(lessons ?? [])
+              .slice()
+              .sort((a: any, b: any) => a.startTime - b.startTime)
+              .map((l: any) => (
+                <Link key={l._id} to={`/lesson/${l._id}`}>
+                  <div className={clsx(
+                    "relative rounded-2xl border border-border bg-white p-3 min-h-[74px] hover:border-border-strong transition-colors",
+                    l.isEvent && "border-l-4 border-l-purple-400"
+                  )}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-sm text-ink truncate">{l.subject}</p>
+                        {l.location && (
+                          <p className="text-[11px] text-ink-muted flex items-center gap-1 mt-1">
+                            <MapPin size={10} /> {l.location}
                           </p>
-                          {l.location && (
-                            <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
-                              <MapPin size={10} /> {l.location}
-                            </p>
-                          )}
-                        </div>
-                        <span className="text-xs text-ink-light">{timeStr(l.endTime)}</span>
+                        )}
                       </div>
-                    </Link>
-                  );
-                }
-                const a = item as any;
-                return (
-                  <div key={a._id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg">
-                    <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
-                      {a.isRecurring ? a.recurringTimeHHMM : timeStr(a.startTime)}
+                      <div className="text-right text-xs text-ink-light">
+                        <p>{timeStr(l.startTime)}</p>
+                        <p>{timeStr(l.endTime)}</p>
+                      </div>
                     </div>
-                    <div
-                      className="w-1 h-8 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: a.color ?? "#6B7280" }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-ink truncate">{a.title}</p>
-                      {a.location && (
-                        <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
-                          <MapPin size={10} /> {a.location}
-                        </p>
-                      )}
-                    </div>
-                    <Badge color="default">Personal</Badge>
                   </div>
-                );
-              })}
-            {(lessons?.length ?? 0) === 0 && todayAppts.length === 0 && (
-              <Empty label="No lessons or appointments today" />
+                </Link>
+              ))}
+            {(lessons?.length ?? 0) === 0 && (
+              <p className="text-sm text-ink-muted">No lessons scheduled for today.</p>
             )}
           </div>
         </div>
 
-        {/* Homework due today */}
+        <div>
+          <div className="grid grid-cols-2 gap-5">
+            {/* Today's schedule */}
+            <div className="col-span-2">
+              <SectionTitle icon={<Clock size={13} />} label="Schedule" />
+              <div className="space-y-2">
+                {[...(lessons ?? []), ...todayAppts]
+                  .sort((a, b) => a.startTime - b.startTime)
+                  .map((item) => {
+                    const isLesson = "icalUid" in item;
+                    if (isLesson) {
+                      const l = item as any;
+                      return (
+                        <Link key={l._id} to={`/lesson/${l._id}`}>
+                          <div className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all group">
+                            <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
+                              {timeStr(l.startTime)}
+                            </div>
+                            <div className="w-1 h-8 rounded-full bg-accent/70 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-ink truncate group-hover:text-accent transition-colors">
+                                {l.subject}
+                              </p>
+                              {l.location && (
+                                <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
+                                  <MapPin size={10} /> {l.location}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs text-ink-light">{timeStr(l.endTime)}</span>
+                          </div>
+                        </Link>
+                      );
+                    }
+                    const a = item as any;
+                    return (
+                      <div key={a._id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-lg">
+                        <div className="text-xs font-mono text-ink-muted w-11 flex-shrink-0">
+                          {a.isRecurring ? a.recurringTimeHHMM : timeStr(a.startTime)}
+                        </div>
+                        <div
+                          className="w-1 h-8 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: a.color ?? "#6B7280" }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-ink truncate">{a.title}</p>
+                          {a.location && (
+                            <p className="text-xs text-ink-muted flex items-center gap-0.5 mt-0.5">
+                              <MapPin size={10} /> {a.location}
+                            </p>
+                          )}
+                        </div>
+                        <Badge color="default">Personal</Badge>
+                      </div>
+                    );
+                  })}
+                {(lessons?.length ?? 0) === 0 && todayAppts.length === 0 && (
+                  <Empty label="No lessons or appointments today" />
+                )}
+              </div>
+            </div>
         <div>
           <SectionTitle icon={<ClipboardList size={13} />} label="Homework due today" />
           <div className="space-y-1.5">
@@ -215,19 +260,9 @@ export default function TodayPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 mb-2.5">
-      <span className="text-ink-light">{icon}</span>
-      <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wider">{label}</h2>
     </div>
   );
 }
-
-function Empty({ label }: { label: string }) {
   return <p className="text-xs text-ink-light py-2 px-1">{label}</p>;
 }
 
