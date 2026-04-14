@@ -12,6 +12,8 @@ import {
   Repeat2,
   CalendarClock,
   Settings,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -26,17 +28,41 @@ const nav = [
   { label: "Appointments", to: "/appointments", icon: CalendarClock },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  collapsed,
+  onToggleCollapsed,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}) {
   const location = useLocation();
   const subjects = useQuery(api.lessons.getSubjects);
 
   return (
-    <aside className="w-56 h-screen bg-sidebar flex flex-col flex-shrink-0 fixed left-0 top-0 z-30">
+    <aside
+      className={clsx(
+        "h-screen bg-sidebar flex flex-col flex-shrink-0 fixed left-0 top-0 z-30 transition-all duration-200 overflow-hidden",
+        collapsed ? "w-16" : "w-56"
+      )}
+    >
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-sidebar-border">
-        <span className="text-white font-semibold text-lg tracking-tight">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+        <span
+          className={clsx(
+            "inline-block text-white font-semibold tracking-tight transition-all duration-200",
+            collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
+          )}
+        >
           planr
         </span>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
 
       {/* Nav */}
@@ -50,43 +76,53 @@ export default function Sidebar() {
               key={to}
               to={to}
               className={clsx(
-                "flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors",
+                "flex items-center",
+                collapsed ? "justify-center px-2 py-3" : "gap-2.5 px-3 py-2",
+                "rounded text-sm transition-colors",
                 active
                   ? "bg-white/10 text-white"
                   : "text-sidebar-text hover:text-white hover:bg-white/5"
               )}
             >
               <Icon size={15} strokeWidth={1.75} />
-              {label}
+              <span
+                className={clsx(
+                  "inline-block truncate transition-all duration-200",
+                  collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
+                )}
+              >
+                {label}
+              </span>
             </NavLink>
           );
         })}
 
         {/* Subjects divider */}
-        {subjects && subjects.length > 0 && (
+        {!collapsed && subjects && subjects.length > 0 && (
           <div className="pt-4 pb-1 px-3">
             <span className="text-xs font-medium text-sidebar-text/60 uppercase tracking-wider">
               Subjects
             </span>
           </div>
         )}
-        {subjects?.map((subject) => (
-          <NavLink
-            key={subject}
-            to={`/notebook/${encodeURIComponent(subject)}`}
-            className={({ isActive }) =>
-              clsx(
-                "flex items-center gap-2.5 px-3 py-1.5 rounded text-sm transition-colors",
-                isActive
-                  ? "bg-white/10 text-white"
-                  : "text-sidebar-text hover:text-white hover:bg-white/5"
-              )
-            }
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-sidebar-text/50 flex-shrink-0" />
-            <span className="truncate">{subject}</span>
-          </NavLink>
-        ))}
+        {!collapsed &&
+          subjects?.map((subject) => (
+            <NavLink
+              key={subject}
+              to={`/notebook/${encodeURIComponent(subject)}`}
+              className={({ isActive }) =>
+                clsx(
+                  "flex items-center gap-2.5 px-3 py-1.5 rounded text-sm transition-colors",
+                  isActive
+                    ? "bg-white/10 text-white"
+                    : "text-sidebar-text hover:text-white hover:bg-white/5"
+                )
+              }
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-sidebar-text/50 flex-shrink-0" />
+              <span className="truncate">{subject}</span>
+            </NavLink>
+          ))}
       </nav>
 
       {/* Bottom */}
@@ -102,13 +138,15 @@ export default function Sidebar() {
         >
           <Settings size={15} />
         </NavLink>
-        <UserButton
-          appearance={{
-            elements: {
-              avatarBox: "w-7 h-7",
-            },
-          }}
-        />
+        <div className={clsx(collapsed ? "opacity-0 w-0" : "opacity-100")}> 
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "w-7 h-7",
+              },
+            }}
+          />
+        </div>
       </div>
     </aside>
   );
