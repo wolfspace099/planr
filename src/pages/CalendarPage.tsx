@@ -5,8 +5,8 @@ import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
   format, isSameDay, isToday,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, MapPin, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../components/ui/primitives";
 import clsx from "clsx";
 
@@ -215,33 +215,19 @@ export default function CalendarPage() {
                         <div className="h-full min-h-[54px] rounded border border-dashed border-border/30" />
                       ) : (
                         cellLessons.map((l) => (
-                          <div key={l._id} className="relative group">
-                            <Link to={`/lesson/${l._id}`}>
-                              <div className="rounded border border-border bg-surface px-1.5 py-1 min-h-[54px] flex flex-col gap-0.5 hover:bg-bg hover:border-border-strong transition-colors cursor-pointer">
-                                <span className="text-[11px] font-semibold text-ink leading-tight">
-                                  {subjectDisplay(l.subject)}
+                          <Link key={l._id} to={`/lesson/${l._id}`}>
+                            <div className="rounded border border-border bg-surface px-1.5 py-1 min-h-[54px] flex flex-col gap-0.5 hover:bg-bg hover:border-border-strong transition-colors cursor-pointer">
+                              <span className="text-[11px] font-semibold text-ink leading-tight">
+                                {subjectDisplay(l.subject)}
+                              </span>
+                              {l.location && (
+                                <span className="text-[10px] text-ink-muted leading-tight flex items-center gap-0.5">
+                                  <MapPin size={8} className="shrink-0" />
+                                  {l.location}
                                 </span>
-                                {l.location && (
-                                  <span className="text-[10px] text-ink-muted leading-tight flex items-center gap-0.5">
-                                    <MapPin size={8} className="shrink-0" />
-                                    {l.location}
-                                  </span>
-                                )}
-                              </div>
-                            </Link>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                // Navigate to lesson detail with homework tab open
-                                window.location.href = `/lesson/${l._id}?tab=homework`;
-                              }}
-                              className="absolute top-0.5 right-0.5 w-4 h-4 bg-accent/10 hover:bg-accent/20 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Add homework"
-                            >
-                              <Plus size={10} className="text-accent" />
-                            </button>
-                          </div>
+                              )}
+                            </div>
+                          </Link>
                         ))
                       )}
                     </div>

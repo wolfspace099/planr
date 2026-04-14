@@ -3,3 +3,4 @@ planr.tar.gz
 node_modules
 .agents
 .claude
+.env
