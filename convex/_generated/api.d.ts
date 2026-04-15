@@ -13,6 +13,7 @@ import type * as ical from "../ical.js";
 import type * as lessons from "../lessons.js";
 import type * as misc from "../misc.js";
 import type * as notes from "../notes.js";
+import type * as studiePlanner from "../studiePlanner.js";
 import type * as tasks from "../tasks.js";
 import type * as userSettings from "../userSettings.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   lessons: typeof lessons;
   misc: typeof misc;
   notes: typeof notes;
+  studiePlanner: typeof studiePlanner;
   tasks: typeof tasks;
   userSettings: typeof userSettings;
 }>;
