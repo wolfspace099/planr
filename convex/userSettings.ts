@@ -49,31 +49,3 @@ export const markSynced = mutation({
     }
   },
 });
-
-export const reset = mutation({
-  handler: async (ctx) => {
-    const userId = await requireUser(ctx);
-    const tables = [
-      "notes",
-      "homework",
-      "tasks",
-      "tests",
-      "appointments",
-      "habits",
-      "habitCompletions",
-      "lessons",
-      "chapters",
-    ] as const;
-
-    for (const table of tables) {
-      const rows = await ctx.db
-        .query(table)
-        .withIndex("by_user", (q: any) => q.eq("userId", userId))
-        .collect();
-
-      for (const row of rows) {
-        await ctx.db.delete(row._id);
-      }
-    }
-  },
-});

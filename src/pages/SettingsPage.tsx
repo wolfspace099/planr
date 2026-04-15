@@ -11,7 +11,6 @@ export default function SettingsPage() {
   const { user } = useUser();
   const settings = useQuery(api.userSettings.get);
   const upsert = useMutation(api.userSettings.upsert);
-  const resetData = useMutation(api.userSettings.reset);
   const syncCalendar = useAction(api.ical.syncCalendar);
 
   const [icalUrl, setIcalUrl] = useState("");
@@ -20,11 +19,6 @@ export default function SettingsPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [resetRequested, setResetRequested] = useState(false);
-  const [resetInput, setResetInput] = useState("");
-  const [resetting, setResetting] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
-  const [resetError, setResetError] = useState<string | null>(null);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -68,22 +62,6 @@ export default function SettingsPage() {
       setSyncError(e.message ?? "Sync failed");
     } finally {
       setSyncing(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setResetError(null);
-    setResetSuccess(false);
-    setResetting(true);
-    try {
-      await resetData();
-      setResetSuccess(true);
-      setResetRequested(false);
-      setResetInput("");
-    } catch (e: any) {
-      setResetError(e.message ?? "Failed to reset data.");
-    } finally {
-      setResetting(false);
     }
   };
 
@@ -181,56 +159,6 @@ export default function SettingsPage() {
                 {syncing ? "Syncing…" : "Sync now"}
               </Button>
             </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-sm font-semibold text-ink mb-1">Danger zone</h2>
-          <p className="text-xs text-ink-muted mb-3">
-            This will delete all your school data from the app, including lessons, notes, homework, tasks, tests, appointments, habits, and calendar imports. Your Clerk account will not be deleted.
-          </p>
-
-          <div className="p-4 bg-surface border border-border rounded-lg space-y-4">
-            {!resetRequested ? (
-              <Button size="sm" variant="danger" onClick={() => setResetRequested(true)}>
-                Reset all app data
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-ink">
-                  Type <strong>RESET</strong> and confirm to delete your data.
-                </p>
-                <Input
-                  value={resetInput}
-                  onChange={(e) => setResetInput(e.target.value)}
-                  placeholder="Type RESET to confirm"
-                />
-                {resetError && (
-                  <div className="text-xs text-danger">{resetError}</div>
-                )}
-                {resetSuccess && (
-                  <div className="text-xs text-success">All app data was deleted successfully.</div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={handleReset}
-                    disabled={resetInput !== "RESET" || resetting}
-                  >
-                    {resetting ? "Resetting…" : "Confirm reset"}
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => {
-                    setResetRequested(false);
-                    setResetInput("");
-                    setResetError(null);
-                    setResetSuccess(false);
-                  }}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </section>
       </div>
