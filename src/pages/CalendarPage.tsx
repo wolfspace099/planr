@@ -6,7 +6,7 @@ import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
   format, isSameDay, isToday,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen, ClipboardList, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/ui/primitives";
 import clsx from "clsx";
@@ -162,7 +162,7 @@ export default function CalendarPage() {
   }
 
   function getStudySessionsAt(day: Date) {
-    return (studySessions ?? []).filter((s) => isSameDay(new Date(s.startTime), day));
+    return (studySessions ?? []).filter((s: any) => isSameDay(new Date(s.startTime), day));
   }
 
   return (

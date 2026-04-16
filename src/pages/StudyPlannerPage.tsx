@@ -560,7 +560,7 @@ function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
 
   const today    = isToday(new Date(test.date));
   const daysLeft = Math.ceil((new Date(test.date).getTime() - Date.now()) / 86400000);
-  const doneSubtasks  = (subtasks ?? []).filter((s) => s.done).length;
+  const doneSubtasks  = (subtasks ?? []).filter((s: any) => s.done).length;
   const totalSubtasks = (subtasks ?? []).length;
   const doneSessions  = sessions.filter((s) => s.done).length;
 
@@ -600,7 +600,7 @@ function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
               <p className="text-xs text-ink-light italic">Break down what you need to learn.</p>
             ) : (
               <div className="space-y-1.5">
-                {(subtasks ?? []).sort((a, b) => a.order - b.order).map((sub) => (
+                {(subtasks ?? []).sort((a: any, b: any) => a.order - b.order).map((sub: any) => (
                   <div key={sub._id} className="flex items-center gap-2">
                     <button onClick={() => toggleSubtask({ id: sub._id })}
                       className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
