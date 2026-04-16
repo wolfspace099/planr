@@ -26,4 +26,8 @@ export const studyApi = (api as any).study as {
   createRehearsalSession: any;
   toggleRehearsalSession: any;
   deleteRehearsalSession: any;
+  // reschedule (drag-and-drop)
+  rescheduleStudySession: any;
+  rescheduleHomeworkSession: any;
+  rescheduleRehearsalSession: any;
 };

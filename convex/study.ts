@@ -269,3 +269,34 @@ export const deleteRehearsalSession = mutation({
     await ctx.db.delete(id);
   },
 });
+// ─── Reschedule mutations (for drag-and-drop calendar) ─────────────────────
+
+export const rescheduleStudySession = mutation({
+  args: { id: v.id("studySessions"), startTime: v.number(), durationMinutes: v.number() },
+  handler: async (ctx, { id, startTime, durationMinutes }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.patch(id, { startTime, endTime: startTime + durationMinutes * 60 * 1000 });
+  },
+});
+
+export const rescheduleHomeworkSession = mutation({
+  args: { id: v.id("homeworkSessions"), startTime: v.number(), durationMinutes: v.number() },
+  handler: async (ctx, { id, startTime, durationMinutes }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.patch(id, { startTime, endTime: startTime + durationMinutes * 60 * 1000 });
+  },
+});
+
+export const rescheduleRehearsalSession = mutation({
+  args: { id: v.id("rehearsalSessions"), startTime: v.number(), durationMinutes: v.number() },
+  handler: async (ctx, { id, startTime, durationMinutes }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.patch(id, { startTime, endTime: startTime + durationMinutes * 60 * 1000 });
+  },
+});

@@ -6,9 +6,10 @@ import { format, isPast, isToday, isFuture, addDays } from "date-fns";
 import {
   BookOpen, Plus, Trash2, ChevronDown, ChevronRight,
   CalendarClock, Check, FlaskConical, Clock, ClipboardList,
-  RefreshCw,
+  RefreshCw, Calendar,
 } from "lucide-react";
 import { PageHeader, Button, Modal, Input, Textarea, EmptyState, Badge } from "../components/ui/primitives";
+import { CalendarScheduler, ScheduledSlot } from "../components/ui/CalendarScheduler";
 import clsx from "clsx";
 
 type Tab = "tests" | "homework" | "rehearsal";
@@ -20,7 +21,6 @@ export default function StudyPlannerPage() {
   const homeworkSessions = useQuery(studyApi.getHomeworkSessions);
   const rehearsalSessions = useQuery(studyApi.getRehearsalSessions);
 
-  // Merge all upcoming sessions for the top strip
   const allUpcoming = useMemo(() => {
     const study = (studySessions ?? []).map((s: any) => ({ ...s, _kind: "study" as const }));
     const hw    = (homeworkSessions ?? []).map((s: any) => ({ ...s, _kind: "homework" as const }));
@@ -41,7 +41,6 @@ export default function StudyPlannerPage() {
     <div className="animate-fade-in space-y-6">
       <PageHeader title="Study Planner" subtitle="Plan your learning, homework and rehearsal sessions" />
 
-      {/* Upcoming sessions strip */}
       {allUpcoming.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-3">
@@ -55,7 +54,6 @@ export default function StudyPlannerPage() {
         </section>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-border pb-0">
         {tabs.map((t) => (
           <button
@@ -80,15 +78,22 @@ export default function StudyPlannerPage() {
   );
 }
 
-// ─── Unified session row for the top strip ────────────────────────────────────
+// ─── Unified session row ──────────────────────────────────────────────────────
 
 function AnySessionRow({ session }: { session: any }) {
-  const toggleStudy    = useMutation(studyApi.toggleStudySession);
-  const toggleHomework = useMutation(studyApi.toggleHomeworkSession);
+  const toggleStudy     = useMutation(studyApi.toggleStudySession);
+  const toggleHomework  = useMutation(studyApi.toggleHomeworkSession);
   const toggleRehearsal = useMutation(studyApi.toggleRehearsalSession);
-  const delStudy       = useMutation(studyApi.deleteStudySession);
-  const delHomework    = useMutation(studyApi.deleteHomeworkSession);
-  const delRehearsal   = useMutation(studyApi.deleteRehearsalSession);
+  const delStudy        = useMutation(studyApi.deleteStudySession);
+  const delHomework     = useMutation(studyApi.deleteHomeworkSession);
+  const delRehearsal    = useMutation(studyApi.deleteRehearsalSession);
+  const rescheduleStudy     = useMutation(studyApi.rescheduleStudySession);
+  const rescheduleHomework  = useMutation(studyApi.rescheduleHomeworkSession);
+  const rescheduleRehearsal = useMutation(studyApi.rescheduleRehearsalSession);
+
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const durMin = Math.round((session.endTime - session.startTime) / 60000);
+  const [slot, setSlot] = useState<ScheduledSlot>({ startTime: session.startTime, durationMinutes: durMin });
 
   const toggle = () => {
     if (session._kind === "study")    return toggleStudy({ id: session._id });
@@ -100,36 +105,59 @@ function AnySessionRow({ session }: { session: any }) {
     if (session._kind === "homework") return delHomework({ id: session._id });
     return delRehearsal({ id: session._id });
   };
+  const doReschedule = async () => {
+    if (session._kind === "study")    await rescheduleStudy({ id: session._id, ...slot });
+    else if (session._kind === "homework") await rescheduleHomework({ id: session._id, ...slot });
+    else await rescheduleRehearsal({ id: session._id, ...slot });
+    setRescheduleOpen(false);
+  };
 
-  const kindColor = session._kind === "study" ? "text-purple-500" : session._kind === "homework" ? "text-emerald-500" : "text-amber-500";
-  const KindIcon  = session._kind === "study" ? BookOpen : session._kind === "homework" ? ClipboardList : RefreshCw;
+  const accentColor = session._kind === "study" ? "purple" : session._kind === "homework" ? "emerald" : "amber";
+  const kindColor  = session._kind === "study" ? "text-purple-500" : session._kind === "homework" ? "text-emerald-500" : "text-amber-500";
+  const KindIcon   = session._kind === "study" ? BookOpen : session._kind === "homework" ? ClipboardList : RefreshCw;
   const today = isToday(new Date(session.startTime));
 
   return (
-    <div className={clsx(
-      "flex items-center gap-3 p-3 bg-surface border rounded-lg transition-all",
-      session.done ? "opacity-50 border-border" : today ? "border-accent/40 bg-accent/5" : "border-border hover:border-border-strong"
-    )}>
-      <button onClick={toggle}
-        className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-          session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
-        )}>
-        {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
-      </button>
-      <KindIcon size={13} className={clsx(kindColor, "flex-shrink-0")} />
-      <div className="flex-1 min-w-0">
-        <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
-          {session.title}
-        </p>
-        <p className="text-xs text-ink-muted">
-          {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
-        </p>
+    <>
+      <div className={clsx(
+        "flex items-center gap-3 p-3 bg-surface border rounded-lg transition-all",
+        session.done ? "opacity-50 border-border" : today ? "border-accent/40 bg-accent/5" : "border-border hover:border-border-strong"
+      )}>
+        <button onClick={toggle}
+          className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+            session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
+          )}>
+          {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+        <KindIcon size={13} className={clsx(kindColor, "flex-shrink-0")} />
+        <div className="flex-1 min-w-0">
+          <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
+            {session.title}
+          </p>
+          <p className="text-xs text-ink-muted">
+            {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
+          </p>
+        </div>
+        {today && <Badge color="red">Today</Badge>}
+        <button onClick={() => { setSlot({ startTime: session.startTime, durationMinutes: durMin }); setRescheduleOpen(true); }}
+          className="p-1 text-ink-light hover:text-accent transition-colors" title="Reschedule">
+          <Calendar size={12} />
+        </button>
+        <button onClick={del} className="p-1 text-ink-light hover:text-danger transition-colors">
+          <Trash2 size={12} />
+        </button>
       </div>
-      {today && <Badge color="red">Today</Badge>}
-      <button onClick={del} className="p-1 text-ink-light hover:text-danger transition-colors">
-        <Trash2 size={12} />
-      </button>
-    </div>
+
+      <Modal open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title="Reschedule session" width="max-w-2xl">
+        <div className="space-y-4">
+          <CalendarScheduler value={slot} onChange={setSlot} accentColor={accentColor} />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={doReschedule}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
@@ -194,7 +222,7 @@ function TestsTab({ studySessions }: { studySessions: any[] }) {
 
 function HomeworkTab({ homeworkSessions }: { homeworkSessions: any[] }) {
   const homework = useQuery(api.homework.getAll);
-  const [scheduleModal, setScheduleModal] = useState<any>(null); // holds homework item
+  const [scheduleModal, setScheduleModal] = useState<any>(null);
 
   const sessionsByHw = useMemo(() => {
     const map: Record<string, any[]> = {};
@@ -251,11 +279,7 @@ function HomeworkTab({ homeworkSessions }: { homeworkSessions: any[] }) {
       )}
 
       {scheduleModal && (
-        <ScheduleHomeworkModal
-          open={true}
-          onClose={() => setScheduleModal(null)}
-          hw={scheduleModal}
-        />
+        <ScheduleHomeworkModal open={true} onClose={() => setScheduleModal(null)} hw={scheduleModal} />
       )}
     </div>
   );
@@ -268,10 +292,7 @@ function HomeworkStudyCard({ hw, sessions, onSchedule }: { hw: any; sessions: an
   const doneSessions = sessions.filter((s) => s.done).length;
 
   return (
-    <div className={clsx(
-      "bg-surface border rounded-xl overflow-hidden",
-      overdue ? "border-red-200" : "border-border"
-    )}>
+    <div className={clsx("bg-surface border rounded-xl overflow-hidden", overdue ? "border-red-200" : "border-border")}>
       <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-bg transition-colors" onClick={() => setExpanded((e) => !e)}>
         {expanded ? <ChevronDown size={14} className="text-ink-muted flex-shrink-0" /> : <ChevronRight size={14} className="text-ink-muted flex-shrink-0" />}
         <ClipboardList size={15} className={clsx("flex-shrink-0", overdue ? "text-danger" : "text-emerald-500")} />
@@ -296,9 +317,7 @@ function HomeworkStudyCard({ hw, sessions, onSchedule }: { hw: any; sessions: an
 
       {expanded && (
         <div className="px-4 pb-4 border-t border-border/40 pt-3 space-y-3">
-          {hw.description && (
-            <p className="text-xs text-ink-muted">{hw.description}</p>
-          )}
+          {hw.description && <p className="text-xs text-ink-muted">{hw.description}</p>}
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider">Planned sessions</p>
@@ -323,69 +342,77 @@ function HomeworkStudyCard({ hw, sessions, onSchedule }: { hw: any; sessions: an
 }
 
 function HomeworkSessionRow({ session }: { session: any }) {
-  const toggle = useMutation(studyApi.toggleHomeworkSession);
-  const del    = useMutation(studyApi.deleteHomeworkSession);
-  const today  = isToday(new Date(session.startTime));
+  const toggle    = useMutation(studyApi.toggleHomeworkSession);
+  const del       = useMutation(studyApi.deleteHomeworkSession);
+  const reschedule = useMutation(studyApi.rescheduleHomeworkSession);
+  const today     = isToday(new Date(session.startTime));
+  const durMin    = Math.round((session.endTime - session.startTime) / 60000);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [slot, setSlot] = useState<ScheduledSlot>({ startTime: session.startTime, durationMinutes: durMin });
+
   return (
-    <div className={clsx(
-      "flex items-center gap-3 p-2.5 bg-bg border rounded-lg transition-all",
-      session.done ? "opacity-50 border-border" : today ? "border-emerald-300 bg-emerald-50/40" : "border-border hover:border-border-strong"
-    )}>
-      <button onClick={() => toggle({ id: session._id })}
-        className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-          session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
-        )}>
-        {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
-          {session.title}
-        </p>
-        <p className="text-xs text-ink-muted">
-          {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
-        </p>
+    <>
+      <div className={clsx(
+        "flex items-center gap-3 p-2.5 bg-bg border rounded-lg transition-all",
+        session.done ? "opacity-50 border-border" : today ? "border-emerald-300 bg-emerald-50/40" : "border-border hover:border-border-strong"
+      )}>
+        <button onClick={() => toggle({ id: session._id })}
+          className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+            session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
+          )}>
+          {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
+            {session.title}
+          </p>
+          <p className="text-xs text-ink-muted">
+            {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
+          </p>
+        </div>
+        {today && <Badge color="red">Today</Badge>}
+        <button onClick={() => { setSlot({ startTime: session.startTime, durationMinutes: durMin }); setRescheduleOpen(true); }}
+          className="p-1 text-ink-light hover:text-accent transition-colors" title="Reschedule">
+          <Calendar size={12} />
+        </button>
+        <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
+          <Trash2 size={12} />
+        </button>
       </div>
-      {today && <Badge color="red">Today</Badge>}
-      <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
-        <Trash2 size={12} />
-      </button>
-    </div>
+
+      <Modal open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title="Reschedule homework session" width="max-w-2xl">
+        <div className="space-y-4">
+          <CalendarScheduler value={slot} onChange={setSlot} accentColor="emerald" />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={async () => { await reschedule({ id: session._id, ...slot }); setRescheduleOpen(false); }}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
 function ScheduleHomeworkModal({ open, onClose, hw }: { open: boolean; onClose: () => void; hw: any }) {
   const schedule = useMutation(studyApi.scheduleHomeworkSession);
-  const [date, setDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
-  const [time, setTime] = useState("18:00");
-  const [duration, setDuration] = useState(45);
+  const [slot, setSlot] = useState<ScheduledSlot>({
+    startTime: addDays(new Date(), 1).setHours(18, 0, 0, 0),
+    durationMinutes: 45,
+  });
 
   const submit = async () => {
-    const startTime = new Date(`${date}T${time}`).getTime();
-    await schedule({ homeworkId: hw._id, startTime, durationMinutes: duration });
+    await schedule({ homeworkId: hw._id, startTime: slot.startTime, durationMinutes: slot.durationMinutes });
     onClose();
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Plan homework session">
+    <Modal open={open} onClose={onClose} title="Plan homework session" width="max-w-2xl">
       <div className="space-y-4">
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
           <p className="font-semibold">{hw.title}</p>
           <p>{hw.subject} · Due {format(new Date(hw.dueDate), "EEEE d MMMM")}</p>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Input label="Date" type="date" value={date} onChange={(e: any) => setDate(e.target.value)} />
-          <Input label="Time" type="time" value={time} onChange={(e: any) => setTime(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-ink-muted">Duration (minutes)</label>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setDuration(Math.max(15, duration - 15))}
-              className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">−</button>
-            <span className="text-sm font-semibold text-ink w-8 text-center">{duration}</span>
-            <button onClick={() => setDuration(Math.min(240, duration + 15))}
-              className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">+</button>
-          </div>
-        </div>
+        <CalendarScheduler value={slot} onChange={setSlot} accentColor="emerald" />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={submit}>Add to calendar</Button>
@@ -413,11 +440,9 @@ function RehearsalTab({ rehearsalSessions }: { rehearsalSessions: any[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-ink-muted">
-            Rehearsal sessions are free practice blocks — review notes, redo exercises, or run through a topic without it being tied to a test or homework assignment.
-          </p>
-        </div>
+        <p className="text-sm text-ink-muted">
+          Rehearsal sessions are free practice blocks — review notes, redo exercises, or run through a topic without it being tied to a test or homework assignment.
+        </p>
         <Button variant="primary" size="sm" onClick={() => setCreateModal(true)} className="flex-shrink-0 ml-4">
           <Plus size={13} /> Add session
         </Button>
@@ -457,38 +482,59 @@ function RehearsalTab({ rehearsalSessions }: { rehearsalSessions: any[] }) {
 }
 
 function RehearsalSessionRow({ session }: { session: any }) {
-  const toggle = useMutation(studyApi.toggleRehearsalSession);
-  const del    = useMutation(studyApi.deleteRehearsalSession);
-  const today  = isToday(new Date(session.startTime));
+  const toggle     = useMutation(studyApi.toggleRehearsalSession);
+  const del        = useMutation(studyApi.deleteRehearsalSession);
+  const reschedule = useMutation(studyApi.rescheduleRehearsalSession);
+  const today      = isToday(new Date(session.startTime));
+  const durMin     = Math.round((session.endTime - session.startTime) / 60000);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [slot, setSlot] = useState<ScheduledSlot>({ startTime: session.startTime, durationMinutes: durMin });
+
   return (
-    <div className={clsx(
-      "flex items-center gap-3 p-3 bg-surface border rounded-lg transition-all",
-      session.done ? "opacity-50 border-border" : today ? "border-amber-300 bg-amber-50/40" : "border-border hover:border-border-strong"
-    )}>
-      <button onClick={() => toggle({ id: session._id })}
-        className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-          session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
-        )}>
-        {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
-      </button>
-      <RefreshCw size={13} className="text-amber-500 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
-            {session.title}
+    <>
+      <div className={clsx(
+        "flex items-center gap-3 p-3 bg-surface border rounded-lg transition-all",
+        session.done ? "opacity-50 border-border" : today ? "border-amber-300 bg-amber-50/40" : "border-border hover:border-border-strong"
+      )}>
+        <button onClick={() => toggle({ id: session._id })}
+          className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+            session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
+          )}>
+          {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+        <RefreshCw size={13} className="text-amber-500 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>
+              {session.title}
+            </p>
+            <Badge color="default">{session.subject}</Badge>
+          </div>
+          <p className="text-xs text-ink-muted">
+            {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
           </p>
-          <Badge color="default">{session.subject}</Badge>
+          {session.description && <p className="text-xs text-ink-light mt-0.5">{session.description}</p>}
         </div>
-        <p className="text-xs text-ink-muted">
-          {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
-        </p>
-        {session.description && <p className="text-xs text-ink-light mt-0.5">{session.description}</p>}
+        {today && <Badge color="red">Today</Badge>}
+        <button onClick={() => { setSlot({ startTime: session.startTime, durationMinutes: durMin }); setRescheduleOpen(true); }}
+          className="p-1 text-ink-light hover:text-accent transition-colors" title="Reschedule">
+          <Calendar size={12} />
+        </button>
+        <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
+          <Trash2 size={12} />
+        </button>
       </div>
-      {today && <Badge color="red">Today</Badge>}
-      <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
-        <Trash2 size={12} />
-      </button>
-    </div>
+
+      <Modal open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title="Reschedule rehearsal session" width="max-w-2xl">
+        <div className="space-y-4">
+          <CalendarScheduler value={slot} onChange={setSlot} accentColor="amber" />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={async () => { await reschedule({ id: session._id, ...slot }); setRescheduleOpen(false); }}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
@@ -497,47 +543,35 @@ function CreateRehearsalModal({ open, onClose, subjects }: { open: boolean; onCl
   const [subject, setSubject] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
-  const [time, setTime] = useState("18:00");
-  const [duration, setDuration] = useState(60);
+  const [slot, setSlot] = useState<ScheduledSlot>({
+    startTime: addDays(new Date(), 1).setHours(18, 0, 0, 0),
+    durationMinutes: 60,
+  });
 
   const submit = async () => {
     if (!subject || !title.trim()) return;
-    const startTime = new Date(`${date}T${time}`).getTime();
-    await create({ subject, title, description: description || undefined, startTime, durationMinutes: duration });
+    await create({ subject, title, description: description || undefined, startTime: slot.startTime, durationMinutes: slot.durationMinutes });
     setSubject(""); setTitle(""); setDescription(""); onClose();
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Add rehearsal session">
-      <div className="space-y-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-ink-muted">Subject</label>
-          <select value={subject} onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
-            <option value="">Select subject…</option>
-            {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <Input label="What to rehearse" value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Review chapter 4 formulas" />
-        <Textarea label="Notes (optional)" value={description} onChange={(e: any) => setDescription(e.target.value)} rows={2} placeholder="Anything specific to focus on…" />
+    <Modal open={open} onClose={onClose} title="Add rehearsal session" width="max-w-2xl">
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Date" type="date" value={date} onChange={(e: any) => setDate(e.target.value)} />
-          <Input label="Time" type="time" value={time} onChange={(e: any) => setTime(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-ink-muted">Duration (minutes)</label>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setDuration(Math.max(15, duration - 15))}
-              className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">−</button>
-            <span className="text-sm font-semibold text-ink w-8 text-center">{duration}</span>
-            <button onClick={() => setDuration(Math.min(240, duration + 15))}
-              className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">+</button>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-ink-muted">Subject</label>
+            <select value={subject} onChange={(e) => setSubject(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded border border-border bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/40">
+              <option value="">Select subject…</option>
+              {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
+          <Input label="What to rehearse" value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Review chapter 4 formulas" />
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
-          <Clock size={11} /> {duration} min · {date} at {time}
-        </div>
+        <Textarea label="Notes (optional)" value={description} onChange={(e: any) => setDescription(e.target.value)} rows={2} placeholder="Anything specific to focus on…" />
+
+        <CalendarScheduler value={slot} onChange={setSlot} accentColor="amber" />
+
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={submit} disabled={!subject || !title.trim()}>Add to calendar</Button>
@@ -547,7 +581,7 @@ function CreateRehearsalModal({ open, onClose, subjects }: { open: boolean; onCl
   );
 }
 
-// ─── Shared sub-components (for Tests tab) ────────────────────────────────────
+// ─── Tests sub-components ─────────────────────────────────────────────────────
 
 function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
   const [expanded, setExpanded] = useState(true);
@@ -588,7 +622,6 @@ function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-border/40 pt-3">
-          {/* Study topics */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider">Study topics</p>
@@ -618,7 +651,6 @@ function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
             )}
           </div>
 
-          {/* Study sessions */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider">Study sessions</p>
@@ -646,31 +678,52 @@ function TestStudyCard({ test, sessions }: { test: any; sessions: any[] }) {
 }
 
 function StudySessionRow({ session }: { session: any }) {
-  const toggle = useMutation(studyApi.toggleStudySession);
-  const del    = useMutation(studyApi.deleteStudySession);
-  const today  = isToday(new Date(session.startTime));
+  const toggle     = useMutation(studyApi.toggleStudySession);
+  const del        = useMutation(studyApi.deleteStudySession);
+  const reschedule = useMutation(studyApi.rescheduleStudySession);
+  const today      = isToday(new Date(session.startTime));
+  const durMin     = Math.round((session.endTime - session.startTime) / 60000);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [slot, setSlot] = useState<ScheduledSlot>({ startTime: session.startTime, durationMinutes: durMin });
+
   return (
-    <div className={clsx(
-      "flex items-center gap-3 p-2.5 bg-bg border rounded-lg transition-all",
-      session.done ? "opacity-50 border-border" : today ? "border-purple-300 bg-purple-50/40" : "border-border hover:border-border-strong"
-    )}>
-      <button onClick={() => toggle({ id: session._id })}
-        className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-          session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
-        )}>
-        {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>{session.title}</p>
-        <p className="text-xs text-ink-muted">
-          {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
-        </p>
+    <>
+      <div className={clsx(
+        "flex items-center gap-3 p-2.5 bg-bg border rounded-lg transition-all",
+        session.done ? "opacity-50 border-border" : today ? "border-purple-300 bg-purple-50/40" : "border-border hover:border-border-strong"
+      )}>
+        <button onClick={() => toggle({ id: session._id })}
+          className={clsx("w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+            session.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
+          )}>
+          {session.done && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className={clsx("text-sm font-medium text-ink truncate", session.done && "line-through text-ink-muted")}>{session.title}</p>
+          <p className="text-xs text-ink-muted">
+            {format(new Date(session.startTime), "EEEE d MMM · HH:mm")} – {format(new Date(session.endTime), "HH:mm")}
+          </p>
+        </div>
+        {today && <Badge color="red">Today</Badge>}
+        <button onClick={() => { setSlot({ startTime: session.startTime, durationMinutes: durMin }); setRescheduleOpen(true); }}
+          className="p-1 text-ink-light hover:text-accent transition-colors" title="Reschedule">
+          <Calendar size={12} />
+        </button>
+        <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
+          <Trash2 size={12} />
+        </button>
       </div>
-      {today && <Badge color="red">Today</Badge>}
-      <button onClick={() => del({ id: session._id })} className="p-1 text-ink-light hover:text-danger transition-colors">
-        <Trash2 size={12} />
-      </button>
-    </div>
+
+      <Modal open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title="Reschedule study session" width="max-w-2xl">
+        <div className="space-y-4">
+          <CalendarScheduler value={slot} onChange={setSlot} accentColor="purple" />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={async () => { await reschedule({ id: session._id, ...slot }); setRescheduleOpen(false); }}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
@@ -700,49 +753,53 @@ function AddSubtaskModal({ open, onClose, testId, nextOrder }: { open: boolean; 
 function ScheduleStudyModal({ open, onClose, test }: { open: boolean; onClose: () => void; test: any }) {
   const schedule = useMutation(studyApi.scheduleStudySessions);
   const [sessions, setSessions] = useState(3);
-  const [duration, setDuration] = useState(60);
-  const [time, setTime] = useState("18:00");
+  const [slot, setSlot] = useState<ScheduledSlot>({
+    startTime: new Date().setHours(18, 0, 0, 0),
+    durationMinutes: 60,
+  });
   const daysLeft = Math.ceil((new Date(test.date).getTime() - Date.now()) / 86400000);
 
   const submit = async () => {
-    const [h, m] = time.split(":").map(Number);
-    await schedule({ testId: test._id, sessions, durationMinutes: duration, preferredHour: h, preferredMinute: m });
+    const d = new Date(slot.startTime);
+    await schedule({
+      testId: test._id,
+      sessions,
+      durationMinutes: slot.durationMinutes,
+      preferredHour: d.getHours(),
+      preferredMinute: d.getMinutes(),
+    });
     onClose();
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Plan study sessions">
+    <Modal open={open} onClose={onClose} title="Plan study sessions" width="max-w-2xl">
       <div className="space-y-4">
         <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-800">
           <p className="font-semibold">{test.topic} — {test.subject}</p>
           <p>{format(new Date(test.date), "EEEE d MMMM yyyy")} · {daysLeft > 0 ? `${daysLeft} days left` : "Today!"}</p>
         </div>
-        <p className="text-xs text-ink-muted">Sessions are placed on the days <strong>before</strong> the test. Existing sessions for this test will be replaced.</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-ink-muted">Sessions</label>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSessions(Math.max(1, sessions - 1))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">−</button>
-              <span className="text-sm font-semibold text-ink w-4 text-center">{sessions}</span>
-              <button onClick={() => setSessions(Math.min(14, sessions + 1))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">+</button>
-            </div>
+
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-medium text-ink-muted whitespace-nowrap">Number of sessions</label>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSessions(Math.max(1, sessions - 1))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">−</button>
+            <span className="text-sm font-semibold text-ink w-4 text-center">{sessions}</span>
+            <button onClick={() => setSessions(Math.min(14, sessions + 1))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">+</button>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-ink-muted">Duration (min)</label>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setDuration(Math.max(15, duration - 15))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">−</button>
-              <span className="text-sm font-semibold text-ink w-8 text-center">{duration}</span>
-              <button onClick={() => setDuration(Math.min(240, duration + 15))} className="w-7 h-7 rounded border border-border text-ink flex items-center justify-center hover:bg-border transition-colors">+</button>
-            </div>
-          </div>
+          <span className="text-xs text-ink-muted">
+            Sessions are placed on the {sessions} day{sessions !== 1 ? "s" : ""} before the test at the time you pick below.
+          </span>
         </div>
-        <Input label="Preferred time" type="time" value={time} onChange={(e: any) => setTime(e.target.value)} />
-        <div className="text-xs text-ink-muted flex items-center gap-1.5">
-          <Clock size={11} /> {sessions} session{sessions !== 1 ? "s" : ""} × {duration} min on the {sessions} day{sessions !== 1 ? "s" : ""} before the test
-        </div>
+
+        <p className="text-xs text-ink-muted -mt-1">Pick the preferred time on the calendar. Existing sessions for this test will be replaced.</p>
+
+        <CalendarScheduler value={slot} onChange={setSlot} accentColor="purple" />
+
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={submit}>Plan sessions</Button>
+          <Button variant="primary" onClick={submit}>
+            <Clock size={13} /> Plan {sessions} session{sessions !== 1 ? "s" : ""}
+          </Button>
         </div>
       </div>
     </Modal>
