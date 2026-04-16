@@ -10,6 +10,10 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
+// NEW: Mathematics imports
+import { Mathematics } from "@tiptap/extension-mathematics";
+import "katex/dist/katex.min.css"; 
+
 import { useEffect, useRef } from "react";
 import {
   Bold,
@@ -32,6 +36,7 @@ import {
   Minus,
   Undo2,
   Redo2,
+  Sigma, // New icon for formulas
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -96,8 +101,21 @@ export default function NoteEditor({
       TableRow,
       TableHeader,
       TableCell,
+      // NEW: Mathematics configuration
+      Mathematics.configure({
+        HTMLAttributes: {
+          class: 'tiptap-math',
+        },
+      }),
     ],
     content,
+    editorProps: {
+      attributes: {
+        spellcheck: "true",
+        lang: "nl, en",
+        class: "focus:outline-none",
+      },
+    },
     onUpdate({ editor }) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
@@ -106,7 +124,6 @@ export default function NoteEditor({
     },
   });
 
-  // Sync external content changes (e.g. on first load)
   useEffect(() => {
     if (!editor) return;
     const current = editor.getHTML();
@@ -119,116 +136,56 @@ export default function NoteEditor({
 
   return (
     <div className="flex flex-col border border-border rounded-lg overflow-hidden bg-surface">
+      <style>{`
+        .ProseMirror ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
+        .ProseMirror ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
+        .ProseMirror li { display: list-item !important; margin-bottom: 0.25rem !important; }
+        .ProseMirror ul[data-type="taskList"] { list-style: none !important; padding: 0 !important; }
+        .ProseMirror ul[data-type="taskList"] li { display: flex !important; gap: 0.5rem; list-style: none !important; }
+        
+        /* Math specific styling */
+        .tiptap-math {
+          background: rgba(0, 0, 0, 0.05);
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .tiptap-math:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
+
       {/* Toolbar */}
       <div className="flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-border bg-bg/50">
-        {/* Undo/Redo */}
-        <ToolbarButton
-          title="Undo"
-          onClick={() => editor.chain().focus().undo().run()}
-        >
-          <Undo2 size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Redo"
-          onClick={() => editor.chain().focus().redo().run()}
-        >
-          <Redo2 size={14} />
-        </ToolbarButton>
+        <ToolbarButton title="Undo" onClick={() => editor.chain().focus().undo().run()}><Undo2 size={14} /></ToolbarButton>
+        <ToolbarButton title="Redo" onClick={() => editor.chain().focus().redo().run()}><Redo2 size={14} /></ToolbarButton>
         <Divider />
 
-        {/* Headings */}
-        <ToolbarButton
-          title="Heading 1"
-          active={editor.isActive("heading", { level: 1 })}
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
-        >
-          <Heading1 size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 2"
-          active={editor.isActive("heading", { level: 2 })}
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
-        >
-          <Heading2 size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 3"
-          active={editor.isActive("heading", { level: 3 })}
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
-        >
-          <Heading3 size={14} />
-        </ToolbarButton>
+        <ToolbarButton 
+            title="Bold" 
+            active={editor.isActive("bold")} 
+            onClick={() => editor.chain().focus().toggleBold().run()}
+        ><Bold size={14} /></ToolbarButton>
+        <ToolbarButton 
+            title="Italic" 
+            active={editor.isActive("italic")} 
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+        ><Italic size={14} /></ToolbarButton>
         <Divider />
 
-        {/* Text format */}
+        {/* NEW: Formula Button */}
         <ToolbarButton
-          title="Bold"
-          active={editor.isActive("bold")}
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          title="Add Formula (LaTeX)"
+          onClick={() => {
+            const latex = prompt("Enter LaTeX formula (e.g., E=mc^2):");
+            if (latex) {
+              editor.chain().focus().insertContent(`$${latex}$`).run();
+            }
+          }}
         >
-          <Bold size={14} />
+          <Sigma size={14} />
         </ToolbarButton>
-        <ToolbarButton
-          title="Italic"
-          active={editor.isActive("italic")}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-        >
-          <Italic size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Underline"
-          active={editor.isActive("underline")}
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-        >
-          <UnderlineIcon size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Strikethrough"
-          active={editor.isActive("strike")}
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-        >
-          <Strikethrough size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Highlight"
-          active={editor.isActive("highlight")}
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-        >
-          <Highlighter size={14} />
-        </ToolbarButton>
-        <Divider />
 
-        {/* Alignment */}
-        <ToolbarButton
-          title="Align left"
-          active={editor.isActive({ textAlign: "left" })}
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        >
-          <AlignLeft size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Align center"
-          active={editor.isActive({ textAlign: "center" })}
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        >
-          <AlignCenter size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Align right"
-          active={editor.isActive({ textAlign: "right" })}
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        >
-          <AlignRight size={14} />
-        </ToolbarButton>
-        <Divider />
-
-        {/* Lists */}
         <ToolbarButton
           title="Bullet list"
           active={editor.isActive("bulletList")}
@@ -243,51 +200,16 @@ export default function NoteEditor({
         >
           <ListOrdered size={14} />
         </ToolbarButton>
-        <ToolbarButton
-          title="Task list"
-          active={editor.isActive("taskList")}
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-        >
-          <ListTodo size={14} />
-        </ToolbarButton>
         <Divider />
 
-        {/* Blocks */}
-        <ToolbarButton
-          title="Code block"
-          active={editor.isActive("codeBlock")}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        >
-          <Code size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Blockquote"
-          active={editor.isActive("blockquote")}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        >
-          <Quote size={14} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Horizontal rule"
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        >
-          <Minus size={14} />
-        </ToolbarButton>
         <ToolbarButton
           title="Insert table"
-          onClick={() =>
-            editor
-              .chain()
-              .focus()
-              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-              .run()
-          }
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
           <TableIcon size={14} />
         </ToolbarButton>
       </div>
 
-      {/* Editor area */}
       <EditorContent
         editor={editor}
         className="px-8 py-6 min-h-[420px] prose-sm max-w-none"

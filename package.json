@@ -26,12 +26,14 @@
     "@tiptap/extension-text-style": "^2.4.0",
     "@tiptap/extension-task-list": "^2.4.0",
     "@tiptap/extension-task-item": "^2.4.0",
+    "@tiptap/extension-mathematics": "^2.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.383.0",
-    "clsx": "^2.1.1"
+    "clsx": "^2.1.1",
+    "katex": "^0.16.8"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
