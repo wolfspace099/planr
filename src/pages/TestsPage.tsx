@@ -4,9 +4,74 @@ import { Link } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format, isPast, isToday } from "date-fns";
-import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock, MapPin } from "lucide-react";
+import { Plus, Trash2, FlaskConical, Repeat2, CalendarClock, MapPin, Check, GraduationCap, ChevronDown, ChevronRight } from "lucide-react";
 import { PageHeader, Button, Modal, Input, Textarea, EmptyState, Badge } from "../components/ui/primitives";
 import clsx from "clsx";
+
+// ─── Subtask row used inline ──────────────────────────────────────────────────
+function SubtaskList({ testId }: { testId: any }) {
+  const subtasks = useQuery(api.study.getSubtasksByTest, { testId });
+  const toggleSub = useMutation(api.study.toggleSubtask);
+  const deleteSub = useMutation(api.study.deleteSubtask);
+  const createSub = useMutation(api.study.createSubtask);
+  const [adding, setAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+
+  const submit = async () => {
+    if (!newTitle.trim()) return;
+    await createSub({ testId, title: newTitle.trim(), order: (subtasks ?? []).length });
+    setNewTitle("");
+    setAdding(false);
+  };
+
+  if (!subtasks) return null;
+
+  return (
+    <div className="mt-2 pl-1 space-y-1.5">
+      {subtasks.sort((a, b) => a.order - b.order).map((sub) => (
+        <div key={sub._id} className="flex items-center gap-2">
+          <button
+            onClick={() => toggleSub({ id: sub._id })}
+            className={clsx(
+              "w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+              sub.done ? "bg-success border-success" : "border-border-strong hover:border-accent"
+            )}
+          >
+            {sub.done && <Check size={8} className="text-white" strokeWidth={3} />}
+          </button>
+          <span className={clsx("text-xs flex-1 text-ink", sub.done && "line-through text-ink-muted")}>
+            {sub.title}
+          </span>
+          <button onClick={() => deleteSub({ id: sub._id })} className="p-0.5 text-ink-light hover:text-danger transition-colors">
+            <Trash2 size={10} />
+          </button>
+        </div>
+      ))}
+
+      {adding ? (
+        <div className="flex items-center gap-2 mt-1">
+          <input
+            autoFocus
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
+            placeholder="Study topic…"
+            className="flex-1 text-xs px-2 py-1 border border-border rounded bg-bg focus:outline-none focus:ring-1 focus:ring-accent/40"
+          />
+          <button onClick={submit} className="text-xs text-accent font-medium">Add</button>
+          <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-xs text-ink-muted">Cancel</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 text-xs text-ink-muted hover:text-accent transition-colors"
+        >
+          <Plus size={10} /> Add study topic
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function TestsPage() {
   const tests = useQuery(api.misc.getTests);
@@ -34,8 +99,18 @@ export function TestsPage() {
   const [topic, setTopic] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [description, setDescription] = useState("");
+  const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
 
   const sorted = (tests ?? []).sort((a, b) => a.date - b.date);
+
+  const toggleExpand = (id: string) => {
+    setExpandedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const submit = async () => {
     if (!subject || !topic) return;
@@ -55,7 +130,12 @@ export function TestsPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader title="Tests" actions={
-        <Button variant="primary" size="sm" onClick={() => setModal(true)}><Plus size={13} /> Add test</Button>
+        <div className="flex items-center gap-2">
+          <Link to="/study">
+            <Button variant="secondary" size="sm"><GraduationCap size={13} /> Study Planner</Button>
+          </Link>
+          <Button variant="primary" size="sm" onClick={() => setModal(true)}><Plus size={13} /> Add test</Button>
+        </div>
       } />
 
       {sorted.length === 0 ? (
@@ -65,35 +145,51 @@ export function TestsPage() {
           {sorted.map((t) => {
             const past = isPast(new Date(t.date));
             const today = isToday(new Date(t.date));
+            const isExpanded = expandedTests.has(t._id);
             return (
-              <div key={t._id} className={clsx("flex items-start gap-3 p-4 bg-surface border rounded-lg",
-                today ? "border-danger bg-danger-light/20" : past ? "border-border opacity-60" : "border-border hover:border-border-strong"
+              <div key={t._id} className={clsx("bg-surface border rounded-lg overflow-hidden",
+                today ? "border-danger" : past ? "border-border opacity-60" : "border-border hover:border-border-strong"
               )}>
-                <FlaskConical size={16} className={clsx("flex-shrink-0 mt-0.5", today ? "text-danger" : "text-ink-muted")} />
-                {t.lessonId ? (
-                  <Link to={`/lesson/${t.lessonId}`} className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium text-sm text-ink">{t.topic}</p>
-                      <Badge color="default">{t.subject}</Badge>
-                      {today && <Badge color="red">Today!</Badge>}
+                <div className="flex items-start gap-3 p-4">
+                  <button
+                    onClick={() => toggleExpand(t._id)}
+                    className="mt-0.5 text-ink-muted hover:text-ink transition-colors flex-shrink-0"
+                  >
+                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </button>
+                  <FlaskConical size={16} className={clsx("flex-shrink-0 mt-0.5", today ? "text-danger" : "text-ink-muted")} />
+                  {t.lessonId ? (
+                    <Link to={`/lesson/${t.lessonId}`} className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm text-ink">{t.topic}</p>
+                        <Badge color="default">{t.subject}</Badge>
+                        {today && <Badge color="red">Today!</Badge>}
+                      </div>
+                      {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
+                      <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
+                    </Link>
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm text-ink">{t.topic}</p>
+                        <Badge color="default">{t.subject}</Badge>
+                        {today && <Badge color="red">Today!</Badge>}
+                      </div>
+                      {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
+                      <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
                     </div>
-                    {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
-                    <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
-                  </Link>
-                ) : (
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium text-sm text-ink">{t.topic}</p>
-                      <Badge color="default">{t.subject}</Badge>
-                      {today && <Badge color="red">Today!</Badge>}
-                    </div>
-                    {t.description && <p className="text-xs text-ink-muted mt-1">{t.description}</p>}
-                    <p className="text-xs text-ink-light mt-1">{format(new Date(t.date), "EEEE d MMMM yyyy")}</p>
+                  )}
+                  <button onClick={() => deleteTest({ id: t._id })} className="p-1 rounded text-ink-light hover:text-danger transition-colors">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                {isExpanded && (
+                  <div className="px-4 pb-3 border-t border-border/30 pt-2">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-muted mb-1">Study topics</p>
+                    <SubtaskList testId={t._id} />
                   </div>
                 )}
-                <button onClick={() => deleteTest({ id: t._id })} className="p-1 rounded text-ink-light hover:text-danger transition-colors">
-                  <Trash2 size={13} />
-                </button>
               </div>
             );
           })}

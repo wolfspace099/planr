@@ -13,6 +13,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  GraduationCap,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -31,6 +32,7 @@ const navSections = [
       { label: "Homework", to: "/homework", icon: ClipboardList },
       { label: "Tasks", to: "/tasks", icon: CheckSquare },
       { label: "Tests", to: "/tests", icon: FlaskConical },
+      { label: "Study Planner", to: "/study", icon: GraduationCap },
       { label: "Habits", to: "/habits", icon: Repeat2 },
       { label: "Appointments", to: "/appointments", icon: CalendarClock },
     ],

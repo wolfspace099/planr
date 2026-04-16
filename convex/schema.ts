@@ -78,6 +78,31 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_date", ["userId", "date"]),
 
+  testSubtasks: defineTable({
+    userId: v.string(),
+    testId: v.id("tests"),
+    title: v.string(),
+    done: v.boolean(),
+    order: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_test", ["testId"])
+    .index("by_user", ["userId"]),
+
+  studySessions: defineTable({
+    userId: v.string(),
+    testId: v.id("tests"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    endTime: v.number(),
+    done: v.boolean(),
+    color: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_test", ["testId"])
+    .index("by_user_time", ["userId", "startTime"]),
+
   habits: defineTable({
     userId: v.string(),
     name: v.string(),

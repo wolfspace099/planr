@@ -10,6 +10,7 @@ import CalendarPage from "./pages/CalendarPage";
 import HabitsPage from "./pages/HabitsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
 import TestsPage from "./pages/TestsPage";
+import StudyPlannerPage from "./pages/StudyPlannerPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
 
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/homework" element={<HomeworkPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/tests" element={<TestsPage />} />
+            <Route path="/study" element={<StudyPlannerPage />} />
             <Route path="/habits" element={<HabitsPage />} />
             <Route path="/appointments" element={<AppointmentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
