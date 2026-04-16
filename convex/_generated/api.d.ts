@@ -14,6 +14,7 @@ import type * as lessons from "../lessons.js";
 import type * as misc from "../misc.js";
 import type * as notes from "../notes.js";
 import type * as study from "../study.js";
+import type * as studyApi from "../studyApi.js";
 import type * as tasks from "../tasks.js";
 import type * as userSettings from "../userSettings.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   misc: typeof misc;
   notes: typeof notes;
   study: typeof study;
+  studyApi: typeof studyApi;
   tasks: typeof tasks;
   userSettings: typeof userSettings;
 }>;

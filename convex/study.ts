@@ -21,19 +21,10 @@ export const getSubtasksByTest = query({
 });
 
 export const createSubtask = mutation({
-  args: {
-    testId: v.id("tests"),
-    title: v.string(),
-    order: v.number(),
-  },
+  args: { testId: v.id("tests"), title: v.string(), order: v.number() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    return await ctx.db.insert("testSubtasks", {
-      userId,
-      ...args,
-      done: false,
-      createdAt: Date.now(),
-    });
+    return await ctx.db.insert("testSubtasks", { userId, ...args, done: false, createdAt: Date.now() });
   },
 });
 
@@ -57,7 +48,7 @@ export const deleteSubtask = mutation({
   },
 });
 
-// ─── Study Sessions ───────────────────────────────────────────────────────────
+// ─── Study Sessions (for tests) ───────────────────────────────────────────────
 
 export const getStudySessions = query({
   handler: async (ctx) => {
@@ -65,17 +56,6 @@ export const getStudySessions = query({
     return await ctx.db
       .query("studySessions")
       .withIndex("by_user", (q: any) => q.eq("userId", userId))
-      .collect();
-  },
-});
-
-export const getStudySessionsByTest = query({
-  args: { testId: v.id("tests") },
-  handler: async (ctx, { testId }) => {
-    await requireUser(ctx);
-    return await ctx.db
-      .query("studySessions")
-      .withIndex("by_test", (q: any) => q.eq("testId", testId))
       .collect();
   },
 });
@@ -90,25 +70,6 @@ export const getStudySessionsInRange = query({
         q.eq("userId", userId).gte("startTime", from).lte("startTime", to)
       )
       .collect();
-  },
-});
-
-export const createStudySession = mutation({
-  args: {
-    testId: v.id("tests"),
-    title: v.string(),
-    description: v.optional(v.string()),
-    startTime: v.number(),
-    endTime: v.number(),
-    color: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const userId = await requireUser(ctx);
-    return await ctx.db.insert("studySessions", {
-      userId,
-      ...args,
-      done: false,
-    });
   },
 });
 
@@ -149,9 +110,7 @@ export const scheduleStudySessions = mutation({
       .query("studySessions")
       .withIndex("by_test", (q: any) => q.eq("testId", testId))
       .collect();
-    for (const s of existing) {
-      await ctx.db.delete(s._id);
-    }
+    for (const s of existing) await ctx.db.delete(s._id);
 
     const testDate = new Date(test.date);
     const created = [];
@@ -173,5 +132,140 @@ export const scheduleStudySessions = mutation({
       );
     }
     return created;
+  },
+});
+
+// ─── Homework Sessions ────────────────────────────────────────────────────────
+
+export const getHomeworkSessions = query({
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("homeworkSessions")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
+export const getHomeworkSessionsInRange = query({
+  args: { from: v.number(), to: v.number() },
+  handler: async (ctx, { from, to }) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("homeworkSessions")
+      .withIndex("by_user_time", (q: any) =>
+        q.eq("userId", userId).gte("startTime", from).lte("startTime", to)
+      )
+      .collect();
+  },
+});
+
+export const toggleHomeworkSession = mutation({
+  args: { id: v.id("homeworkSessions") },
+  handler: async (ctx, { id }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.patch(id, { done: !sess.done });
+  },
+});
+
+export const deleteHomeworkSession = mutation({
+  args: { id: v.id("homeworkSessions") },
+  handler: async (ctx, { id }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.delete(id);
+  },
+});
+
+export const scheduleHomeworkSession = mutation({
+  args: {
+    homeworkId: v.id("homework"),
+    startTime: v.number(),
+    durationMinutes: v.number(),
+  },
+  handler: async (ctx, { homeworkId, startTime, durationMinutes }) => {
+    const userId = await requireUser(ctx);
+    const hw = await ctx.db.get(homeworkId);
+    if (!hw || hw.userId !== userId) throw new Error("Not found");
+
+    return await ctx.db.insert("homeworkSessions", {
+      userId,
+      homeworkId,
+      title: `Do: ${hw.title}`,
+      description: hw.description,
+      startTime,
+      endTime: startTime + durationMinutes * 60 * 1000,
+      done: false,
+      color: "#10B981",
+    });
+  },
+});
+
+// ─── Rehearsal Sessions ───────────────────────────────────────────────────────
+
+export const getRehearsalSessions = query({
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("rehearsalSessions")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
+export const getRehearsalSessionsInRange = query({
+  args: { from: v.number(), to: v.number() },
+  handler: async (ctx, { from, to }) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("rehearsalSessions")
+      .withIndex("by_user_time", (q: any) =>
+        q.eq("userId", userId).gte("startTime", from).lte("startTime", to)
+      )
+      .collect();
+  },
+});
+
+export const createRehearsalSession = mutation({
+  args: {
+    subject: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    durationMinutes: v.number(),
+    color: v.optional(v.string()),
+  },
+  handler: async (ctx, { durationMinutes, ...args }) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db.insert("rehearsalSessions", {
+      userId,
+      ...args,
+      endTime: args.startTime + durationMinutes * 60 * 1000,
+      done: false,
+      color: args.color ?? "#F59E0B",
+    });
+  },
+});
+
+export const toggleRehearsalSession = mutation({
+  args: { id: v.id("rehearsalSessions") },
+  handler: async (ctx, { id }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.patch(id, { done: !sess.done });
+  },
+});
+
+export const deleteRehearsalSession = mutation({
+  args: { id: v.id("rehearsalSessions") },
+  handler: async (ctx, { id }) => {
+    const userId = await requireUser(ctx);
+    const sess = await ctx.db.get(id);
+    if (!sess || sess.userId !== userId) throw new Error("Not found");
+    await ctx.db.delete(id);
   },
 });

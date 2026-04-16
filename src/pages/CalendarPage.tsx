@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { studyApi } from "../studyApi";
 import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
   format, isSameDay, isToday,
@@ -97,6 +98,20 @@ function studySessionsInHour(sessions: any[], day: Date, hour: number): any[] {
   });
 }
 
+function homeworkSessionsInHour(sessions: any[], day: Date, hour: number): any[] {
+  return sessions.filter((s) => {
+    if (!isSameDay(new Date(s.startTime), day)) return false;
+    return new Date(s.startTime).getHours() === hour;
+  });
+}
+
+function rehearsalSessionsInHour(sessions: any[], day: Date, hour: number): any[] {
+  return sessions.filter((s) => {
+    if (!isSameDay(new Date(s.startTime), day)) return false;
+    return new Date(s.startTime).getHours() === hour;
+  });
+}
+
 export default function CalendarPage() {
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -108,7 +123,15 @@ export default function CalendarPage() {
   const tests        = useQuery(api.misc.getTests);
   const appointments = useQuery(api.misc.getAppointments);
   const homework     = useQuery(api.homework.getAll);
-  const studySessions = useQuery(api.study.getStudySessionsInRange, {
+  const homeworkSessions = useQuery(studyApi.getHomeworkSessionsInRange, {
+    from: weekStart.getTime(),
+    to: weekEnd.getTime(),
+  });
+  const rehearsalSessions = useQuery(studyApi.getRehearsalSessionsInRange, {
+    from: weekStart.getTime(),
+    to: weekEnd.getTime(),
+  });
+  const studySessions = useQuery(studyApi.getStudySessionsInRange, {
     from: weekStart.getTime(),
     to: weekEnd.getTime(),
   });
@@ -294,7 +317,9 @@ export default function CalendarPage() {
               {days.map((day) => {
                 const appts = appointmentsInHour(appointments ?? [], day, hour);
                 const studys = studySessionsInHour(studySessions ?? [], day, hour);
-                const hasContent = appts.length > 0 || studys.length > 0;
+                const hwSess = homeworkSessionsInHour(homeworkSessions ?? [], day, hour);
+                const rehSess = rehearsalSessionsInHour(rehearsalSessions ?? [], day, hour);
+                const hasContent = appts.length > 0 || studys.length > 0 || hwSess.length > 0 || rehSess.length > 0;
                 return (
                   <div key={day.toISOString()} className="min-h-[40px] space-y-1">
                     {!hasContent && (
@@ -331,6 +356,46 @@ export default function CalendarPage() {
                           </span>
                         </div>
                         <span className="text-[10px] text-purple-600 leading-tight">
+                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
+                          {s.done && " ✓"}
+                        </span>
+                      </div>
+                    ))}
+                    {hwSess.map((s) => (
+                      <div key={s._id}
+                        className={clsx(
+                          "rounded border border-emerald-200 bg-emerald-50/60 px-1.5 py-1 min-h-[40px] flex flex-col gap-0.5",
+                          s.done && "opacity-50"
+                        )}
+                        title={s.title}
+                      >
+                        <div className="flex items-center gap-1">
+                          <ClipboardList size={9} className="text-emerald-500 flex-shrink-0" />
+                          <span className="text-[11px] font-semibold leading-tight truncate text-emerald-800">
+                            {s.title}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-emerald-600 leading-tight">
+                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
+                          {s.done && " ✓"}
+                        </span>
+                      </div>
+                    ))}
+                    {rehSess.map((s) => (
+                      <div key={s._id}
+                        className={clsx(
+                          "rounded border border-amber-200 bg-amber-50/60 px-1.5 py-1 min-h-[40px] flex flex-col gap-0.5",
+                          s.done && "opacity-50"
+                        )}
+                        title={s.title}
+                      >
+                        <div className="flex items-center gap-1">
+                          <RefreshCw size={9} className="text-amber-500 flex-shrink-0" />
+                          <span className="text-[11px] font-semibold leading-tight truncate text-amber-800">
+                            {s.title}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-amber-600 leading-tight">
                           {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
                           {s.done && " ✓"}
                         </span>

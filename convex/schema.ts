@@ -89,6 +89,7 @@ export default defineSchema({
     .index("by_test", ["testId"])
     .index("by_user", ["userId"]),
 
+  // Sessions for tests (learning before a test)
   studySessions: defineTable({
     userId: v.string(),
     testId: v.id("tests"),
@@ -101,6 +102,35 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_test", ["testId"])
+    .index("by_user_time", ["userId", "startTime"]),
+
+  // Sessions for doing/planning homework
+  homeworkSessions: defineTable({
+    userId: v.string(),
+    homeworkId: v.id("homework"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    endTime: v.number(),
+    done: v.boolean(),
+    color: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_homework", ["homeworkId"])
+    .index("by_user_time", ["userId", "startTime"]),
+
+  // Free rehearsal sessions (not tied to a specific test or homework)
+  rehearsalSessions: defineTable({
+    userId: v.string(),
+    subject: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    endTime: v.number(),
+    done: v.boolean(),
+    color: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
     .index("by_user_time", ["userId", "startTime"]),
 
   habits: defineTable({
