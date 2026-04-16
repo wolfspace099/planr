@@ -10,17 +10,32 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
-import { Mathematics } from "@tiptap/extension-mathematics";
-import TextStyle from "@tiptap/extension-text-style"; // NEW
-import { Color } from "@tiptap/extension-color"; // NEW
+import { Mathematics } from "@tiptap/extension-mathematic";
 import "katex/dist/katex.min.css"; 
 
 import { useEffect, useRef } from "react";
 import {
-  Bold, Italic, UnderlineIcon, Strikethrough, Highlighter,
-  Heading1, Heading2, List, ListOrdered, AlignLeft, 
-  AlignCenter, AlignRight, Table as TableIcon, Undo2, Redo2, 
-  Sigma, Type, Palette
+  Bold,
+  Italic,
+  UnderlineIcon,
+  Strikethrough,
+  Highlighter,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  ListTodo,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Table as TableIcon,
+  Code,
+  Quote,
+  Minus,
+  Undo2,
+  Redo2,
+  Sigma,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -30,20 +45,30 @@ type NoteEditorProps = {
   placeholder?: string;
 };
 
-// Colors for the dropdowns
-const COLORS = ["#000000", "#ef4444", "#f97316", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
-const HIGHLIGHTS = ["#ffec3d", "#ffa39e", "#b7eb8f", "#91d5ff", "#d3adf7"];
-
-function ToolbarButton({ onClick, active, title, children, className }: any) {
+function ToolbarButton({
+  onClick,
+  active,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  active?: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       title={title}
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
       className={clsx(
-        "p-1.5 rounded transition-colors text-sm flex items-center justify-center",
-        active ? "bg-accent/10 text-accent" : "text-ink-muted hover:text-ink hover:bg-border/60",
-        className
+        "p-1.5 rounded transition-colors text-sm",
+        active
+          ? "bg-accent/10 text-accent"
+          : "text-ink-muted hover:text-ink hover:bg-border/60"
       )}
     >
       {children}
@@ -51,21 +76,31 @@ function ToolbarButton({ onClick, active, title, children, className }: any) {
   );
 }
 
-export default function NoteEditor({ content, onChange, placeholder = "Start writing..." }: NoteEditorProps) {
+function Divider() {
+  return <div className="w-px h-5 bg-border-strong mx-0.5 self-center" />;
+}
+
+export default function NoteEditor({
+  content,
+  onChange,
+  placeholder = "Start writing your notes…",
+}: NoteEditorProps) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }), // Enable multi-color
+      Highlight.configure({ multicolor: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({ placeholder }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      // Fixed Mathematics configuration
       Mathematics,
     ],
     content,
@@ -84,92 +119,99 @@ export default function NoteEditor({ content, onChange, placeholder = "Start wri
     },
   });
 
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if (content && content !== current && content !== "<p></p>") {
+      editor.commands.setContent(content, false);
+    }
+  }, [content, editor]);
+
   if (!editor) return null;
 
   return (
     <div className="flex flex-col border border-border rounded-lg overflow-hidden bg-surface">
       <style>{`
+        /* Fixes for Bullets and Lists */
         .ProseMirror ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
         .ProseMirror ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
-        .ProseMirror li { display: list-item !important; }
-        .Tiptap-mathematics-render { cursor: pointer; padding: 0 0.2rem; border-radius: 3px; background: rgba(0,0,0,0.05); }
+        .ProseMirror li { display: list-item !important; margin-bottom: 0.25rem !important; }
+        .ProseMirror ul[data-type="taskList"] { list-style: none !important; padding: 0 !important; }
+        .ProseMirror ul[data-type="taskList"] li { display: flex !important; gap: 0.5rem; list-style: none !important; }
+        
+        /* Math/Formula Styling */
+        .Tiptap-mathematics-editor {
+          background: #202020;
+          color: #fff;
+          font-family: monospace;
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+        }
+        .Tiptap-mathematics-render {
+          cursor: pointer;
+          padding: 0 0.25rem;
+          transition: background 0.2s;
+        }
+        .Tiptap-mathematics-render:hover {
+          background: rgba(0, 0, 0, 0.05);
+        }
       `}</style>
 
       {/* Toolbar */}
-      <div className="flex items-center flex-wrap gap-1 px-3 py-2 border-b border-border bg-bg/50">
+      <div className="flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-border bg-bg/50">
         <ToolbarButton title="Undo" onClick={() => editor.chain().focus().undo().run()}><Undo2 size={14} /></ToolbarButton>
         <ToolbarButton title="Redo" onClick={() => editor.chain().focus().redo().run()}><Redo2 size={14} /></ToolbarButton>
-        
-        <div className="w-px h-4 bg-border mx-1" />
+        <Divider />
 
-        {/* Text Size (Using Headings as proxy for size) */}
-        <ToolbarButton 
-          title="Small Text" 
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          active={editor.isActive('paragraph')}
-        >
-          <span className="text-[10px] font-bold">A</span>
-        </ToolbarButton>
-        <ToolbarButton 
-          title="Large Text" 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          active={editor.isActive('heading', { level: 3 })}
-        >
-          <span className="text-sm font-bold">A</span>
-        </ToolbarButton>
-
-        <div className="w-px h-4 bg-border mx-1" />
-
-        {/* Text Color Picker */}
-        <div className="flex items-center gap-0.5 group relative">
-          <Palette size={14} className="text-ink-muted mr-1" />
-          {COLORS.map(color => (
-            <button
-              key={color}
-              onClick={() => editor.chain().focus().setColor(color).run()}
-              className="w-4 h-4 rounded-full border border-black/10 transition-transform hover:scale-125"
-              style={{ backgroundColor: color }}
-            />
-          ))}
-        </div>
-
-        <div className="w-px h-4 bg-border mx-1" />
-
-        {/* Highlight Color Picker */}
-        <div className="flex items-center gap-0.5">
-          <Highlighter size={14} className="text-ink-muted mr-1" />
-          {HIGHLIGHTS.map(color => (
-            <button
-              key={color}
-              onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
-              className={clsx(
-                "w-4 h-4 rounded-sm border border-black/10 transition-transform hover:scale-125",
-                editor.isActive('highlight', { color }) && "ring-2 ring-accent"
-              )}
-              style={{ backgroundColor: color }}
-            />
-          ))}
-          <button 
-            onClick={() => editor.chain().focus().unsetHighlight().run()}
-            className="text-[10px] text-ink-muted ml-1 hover:text-danger"
-          >Clear</button>
-        </div>
-
-        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarButton
+          title="Heading 1"
+          active={editor.isActive("heading", { level: 1 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        ><Heading1 size={14} /></ToolbarButton>
+        <ToolbarButton
+          title="Heading 2"
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        ><Heading2 size={14} /></ToolbarButton>
+        <Divider />
 
         <ToolbarButton active={editor.isActive("bold")} title="Bold" onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={14} /></ToolbarButton>
         <ToolbarButton active={editor.isActive("italic")} title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={14} /></ToolbarButton>
         <ToolbarButton active={editor.isActive("underline")} title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon size={14} /></ToolbarButton>
-        
-        <div className="w-px h-4 bg-border mx-1" />
+        <Divider />
 
-        <ToolbarButton title="Bullet List" onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={14} /></ToolbarButton>
-        <ToolbarButton title="Formula" onClick={() => editor.chain().focus().insertContent("$E=mc^2$").run()}><Sigma size={14} /></ToolbarButton>
+        {/* Formula Button */}
+        <ToolbarButton
+          title="Add Formula (LaTeX)"
+          onClick={() => {
+            // Inserts a placeholder formula that the user can then click to edit
+            editor.chain().focus().insertContent("$E=mc^2$").run();
+          }}
+        >
+          <Sigma size={14} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          title="Bullet list"
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        ><List size={14} /></ToolbarButton>
+        <ToolbarButton
+          title="Numbered list"
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        ><ListOrdered size={14} /></ToolbarButton>
+        <Divider />
+
+        <ToolbarButton
+          title="Insert table"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        ><TableIcon size={14} /></ToolbarButton>
       </div>
 
       <EditorContent
         editor={editor}
-        className="px-8 py-6 min-h-[400px] prose-sm max-w-none focus:outline-none"
+        className="px-8 py-6 min-h-[420px] prose-sm max-w-none"
       />
     </div>
   );
