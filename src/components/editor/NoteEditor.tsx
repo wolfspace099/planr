@@ -10,7 +10,6 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
-// NEW: Mathematics imports
 import { Mathematics } from "@tiptap/extension-mathematics";
 import "katex/dist/katex.min.css"; 
 
@@ -36,7 +35,7 @@ import {
   Minus,
   Undo2,
   Redo2,
-  Sigma, // New icon for formulas
+  Sigma,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -101,12 +100,8 @@ export default function NoteEditor({
       TableRow,
       TableHeader,
       TableCell,
-      // NEW: Mathematics configuration
-      Mathematics.configure({
-        HTMLAttributes: {
-          class: 'tiptap-math',
-        },
-      }),
+      // Fixed Mathematics configuration
+      Mathematics,
     ],
     content,
     editorProps: {
@@ -137,21 +132,28 @@ export default function NoteEditor({
   return (
     <div className="flex flex-col border border-border rounded-lg overflow-hidden bg-surface">
       <style>{`
+        /* Fixes for Bullets and Lists */
         .ProseMirror ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
         .ProseMirror ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
         .ProseMirror li { display: list-item !important; margin-bottom: 0.25rem !important; }
         .ProseMirror ul[data-type="taskList"] { list-style: none !important; padding: 0 !important; }
         .ProseMirror ul[data-type="taskList"] li { display: flex !important; gap: 0.5rem; list-style: none !important; }
         
-        /* Math specific styling */
-        .tiptap-math {
-          background: rgba(0, 0, 0, 0.05);
-          padding: 0.2rem 0.4rem;
+        /* Math/Formula Styling */
+        .Tiptap-mathematics-editor {
+          background: #202020;
+          color: #fff;
+          font-family: monospace;
+          padding: 0.2rem 0.5rem;
           border-radius: 4px;
-          cursor: pointer;
         }
-        .tiptap-math:hover {
-          background: rgba(0, 0, 0, 0.1);
+        .Tiptap-mathematics-render {
+          cursor: pointer;
+          padding: 0 0.25rem;
+          transition: background 0.2s;
+        }
+        .Tiptap-mathematics-render:hover {
+          background: rgba(0, 0, 0, 0.05);
         }
       `}</style>
 
@@ -161,26 +163,29 @@ export default function NoteEditor({
         <ToolbarButton title="Redo" onClick={() => editor.chain().focus().redo().run()}><Redo2 size={14} /></ToolbarButton>
         <Divider />
 
-        <ToolbarButton 
-            title="Bold" 
-            active={editor.isActive("bold")} 
-            onClick={() => editor.chain().focus().toggleBold().run()}
-        ><Bold size={14} /></ToolbarButton>
-        <ToolbarButton 
-            title="Italic" 
-            active={editor.isActive("italic")} 
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-        ><Italic size={14} /></ToolbarButton>
+        <ToolbarButton
+          title="Heading 1"
+          active={editor.isActive("heading", { level: 1 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        ><Heading1 size={14} /></ToolbarButton>
+        <ToolbarButton
+          title="Heading 2"
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        ><Heading2 size={14} /></ToolbarButton>
         <Divider />
 
-        {/* NEW: Formula Button */}
+        <ToolbarButton active={editor.isActive("bold")} title="Bold" onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={14} /></ToolbarButton>
+        <ToolbarButton active={editor.isActive("italic")} title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={14} /></ToolbarButton>
+        <ToolbarButton active={editor.isActive("underline")} title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon size={14} /></ToolbarButton>
+        <Divider />
+
+        {/* Formula Button */}
         <ToolbarButton
           title="Add Formula (LaTeX)"
           onClick={() => {
-            const latex = prompt("Enter LaTeX formula (e.g., E=mc^2):");
-            if (latex) {
-              editor.chain().focus().insertContent(`$${latex}$`).run();
-            }
+            // Inserts a placeholder formula that the user can then click to edit
+            editor.chain().focus().insertContent("$E=mc^2$").run();
           }}
         >
           <Sigma size={14} />
@@ -190,24 +195,18 @@ export default function NoteEditor({
           title="Bullet list"
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-        >
-          <List size={14} />
-        </ToolbarButton>
+        ><List size={14} /></ToolbarButton>
         <ToolbarButton
           title="Numbered list"
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        >
-          <ListOrdered size={14} />
-        </ToolbarButton>
+        ><ListOrdered size={14} /></ToolbarButton>
         <Divider />
 
         <ToolbarButton
           title="Insert table"
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-        >
-          <TableIcon size={14} />
-        </ToolbarButton>
+        ><TableIcon size={14} /></ToolbarButton>
       </div>
 
       <EditorContent
