@@ -518,7 +518,9 @@ export default function CalendarPage() {
                       <span className="h-2 w-2 rounded-full bg-purple-500 flex-shrink-0" title="Huiswerk" />
                     )}
                     {testLessonIds.has(String(l._id)) && (
-                      <FlaskConical size={9} className="text-purple-500 flex-shrink-0" title="Toets" />
+                      <span title="Toets">
+                        <FlaskConical size={9} className="text-purple-500 flex-shrink-0" />
+                      </span>
                     )}
                   </div>
                 </div>
@@ -700,7 +702,9 @@ export default function CalendarPage() {
                 {/* test/study badges */}
                 <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
                   {weekTests.filter((tt) => isSameDay(new Date(tt.date), day)).map((tt) => (
-                    <FlaskConical key={tt._id} size={11} className="text-purple-500" title={`Toets: ${tt.topic}`} />
+                    <span key={tt._id} title={`Toets: ${tt.topic}`}>
+                      <FlaskConical size={11} className="text-purple-500" />
+                    </span>
                   ))}
                 </div>
               </div>
