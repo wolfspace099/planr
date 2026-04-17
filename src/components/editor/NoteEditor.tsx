@@ -10,7 +10,7 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
-import { Mathematics } from "@tiptap/extension-mathematic";
+import { Mathematics } from "@tiptap/extension-mathematics";
 import "katex/dist/katex.min.css"; 
 
 import { useEffect, useRef } from "react";
