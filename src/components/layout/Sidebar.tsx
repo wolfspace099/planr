@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
 import {
@@ -16,28 +15,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import clsx from "clsx";
-
-const navSections = [
-  {
-    label: "Planner",
-    items: [
-      { label: "Today", to: "/", icon: LayoutDashboard, exact: true },
-      { label: "Calendar", to: "/calendar", icon: Calendar },
-      { label: "Notebook", to: "/notebook", icon: BookOpen },
-    ],
-  },
-  {
-    label: "School",
-    items: [
-      { label: "Homework", to: "/homework", icon: ClipboardList },
-      { label: "Tasks", to: "/tasks", icon: CheckSquare },
-      { label: "Tests", to: "/tests", icon: FlaskConical },
-      { label: "Study Planner", to: "/study", icon: GraduationCap },
-      { label: "Habits", to: "/habits", icon: Repeat2 },
-      { label: "Appointments", to: "/appointments", icon: CalendarClock },
-    ],
-  },
-];
+import { useLang } from "../../i18n";
 
 export default function Sidebar({
   collapsed,
@@ -47,6 +25,29 @@ export default function Sidebar({
   onToggleCollapsed: () => void;
 }) {
   const location = useLocation();
+  const { t } = useLang();
+
+  const navSections = [
+    {
+      label: t.planner,
+      items: [
+        { label: t.today, to: "/", icon: LayoutDashboard, exact: true },
+        { label: t.calendar, to: "/calendar", icon: Calendar },
+        { label: t.notebook, to: "/notebook", icon: BookOpen },
+      ],
+    },
+    {
+      label: t.school,
+      items: [
+        { label: t.homework, to: "/homework", icon: ClipboardList },
+        { label: t.tasks, to: "/tasks", icon: CheckSquare },
+        { label: t.tests, to: "/tests", icon: FlaskConical },
+        { label: t.study, to: "/study", icon: GraduationCap },
+        { label: t.habits, to: "/habits", icon: Repeat2 },
+        { label: t.appointments, to: "/appointments", icon: CalendarClock },
+      ],
+    },
+  ];
 
   return (
     <aside
@@ -72,7 +73,7 @@ export default function Sidebar({
           type="button"
           onClick={onToggleCollapsed}
           className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Sidebar uitklappen" : "Sidebar inklappen"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -133,7 +134,7 @@ export default function Sidebar({
         >
           <Settings size={15} />
         </NavLink>
-        <div className={clsx(collapsed ? "opacity-0 w-0" : "opacity-100")}> 
+        <div className={clsx(collapsed ? "opacity-0 w-0" : "opacity-100")}>
           <UserButton
             appearance={{
               elements: {

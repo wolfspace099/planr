@@ -1,14 +1,19 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { studyApi } from "../studyApi";
 import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
   format, isSameDay, isToday,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen, ClipboardList, RefreshCw } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen,
+  ClipboardList, RefreshCw, Plus, X, ClipboardCheck, CheckSquare,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import { PageHeader } from "../components/ui/primitives";
+import { PageHeader, Modal, Input, Textarea, Button } from "../components/ui/primitives";
+import { useLang } from "../i18n";
 import clsx from "clsx";
 
 const SCHOOL_PERIODS = [
@@ -56,7 +61,7 @@ function subjectDisplay(subject: string): string {
 function appointmentStartMinutes(appointment: any): number {
   if (appointment.isRecurring) {
     const parts = String(appointment.recurringTimeHHMM ?? "0:00").split(":");
-    const [hours, minutes] = parts.map((value) => parseInt(value, 10));
+    const [hours, minutes] = parts.map((v) => parseInt(v, 10));
     return (Number.isNaN(hours) ? 0 : hours) * 60 + (Number.isNaN(minutes) ? 0 : minutes);
   }
   const date = new Date(appointment.startTime);
@@ -112,28 +117,371 @@ function rehearsalSessionsInHour(sessions: any[], day: Date, hour: number): any[
   });
 }
 
+// ─── Lesson Picker Modal ────────────────────────────────────────────────────
+function LessonPickerModal({
+  open, onClose, lessons, onSelect, title: modalTitle,
+}: {
+  open: boolean; onClose: () => void; lessons: any[]; onSelect: (l: any) => void; title: string;
+}) {
+  const { t } = useLang();
+  const byDay = useMemo(() => {
+    return lessons
+      .slice()
+      .sort((a, b) => a.startTime - b.startTime)
+      .reduce((acc: Record<string, any[]>, l) => {
+        const day = format(new Date(l.startTime), "EEEE d MMM");
+        if (!acc[day]) acc[day] = [];
+        acc[day].push(l);
+        return acc;
+      }, {});
+  }, [lessons]);
+
+  return (
+    <Modal open={open} onClose={onClose} title={modalTitle}>
+      <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+        {Object.keys(byDay).length === 0 ? (
+          <p className="text-sm text-ink-muted">{t.noLessons}</p>
+        ) : (
+          Object.entries(byDay).map(([day, dayLessons]) => (
+            <div key={day} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{day}</p>
+              <div className="space-y-2">
+                {dayLessons.map((lesson) => (
+                  <button
+                    key={lesson._id}
+                    onClick={() => onSelect(lesson)}
+                    className="w-full text-left px-3 py-2 rounded border border-border bg-surface hover:border-accent hover:bg-accent/5 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-ink">{lesson.subject}</p>
+                        <p className="text-xs text-ink-muted">
+                          {format(new Date(lesson.startTime), "HH:mm")} – {format(new Date(lesson.endTime), "HH:mm")}
+                        </p>
+                      </div>
+                      {lesson.location && <span className="text-xs text-ink-muted">{lesson.location}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Add Homework Modal ─────────────────────────────────────────────────────
+function AddHomeworkModal({ open, onClose, lessons }: { open: boolean; onClose: () => void; lessons: any[] }) {
+  const { t } = useLang();
+  const create = useMutation(api.homework.create);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [lesson, setLesson] = useState<any>(null);
+  const [lessonPicker, setLessonPicker] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const reset = () => { setTitle(""); setDesc(""); setLesson(null); setDone(false); };
+
+  const submit = async () => {
+    if (!title.trim() || !lesson) return;
+    await create({ lessonId: lesson._id, title, description: desc || undefined, subject: lesson.subject, dueDate: lesson.startTime });
+    setDone(true);
+    setTimeout(() => { reset(); onClose(); }, 900);
+  };
+
+  return (
+    <>
+      <Modal open={open} onClose={() => { reset(); onClose(); }} title={t.addHomework}>
+        <div className="space-y-3">
+          {done ? (
+            <div className="flex items-center gap-2 text-success py-2">
+              <ClipboardCheck size={16} /> {t.homeworkAdded}
+            </div>
+          ) : (
+            <>
+              <Input label={t.title} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t.exampleHomework} />
+              <Textarea label={t.description} value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} />
+              <div>
+                <label className="text-xs font-medium text-ink-muted block mb-1">{t.subject} / Les</label>
+                {lesson ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 rounded border border-accent/40 bg-accent/5 text-sm text-ink">
+                      {lesson.subject} · {format(new Date(lesson.startTime), "EEE d MMM · HH:mm")}
+                    </div>
+                    <button onClick={() => setLesson(null)} className="p-1.5 text-ink-muted hover:text-danger">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => setLessonPicker(true)}>
+                    {t.selectLesson}
+                  </Button>
+                )}
+                <p className="text-xs text-ink-muted mt-1">{t.homeworkNote}</p>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="ghost" onClick={() => { reset(); onClose(); }}>{t.cancel}</Button>
+                <Button variant="primary" onClick={submit} disabled={!lesson || !title.trim()}>{t.add}</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+      <LessonPickerModal
+        open={lessonPicker}
+        onClose={() => setLessonPicker(false)}
+        lessons={lessons}
+        onSelect={(l) => { setLesson(l); setLessonPicker(false); }}
+        title={t.pickLesson}
+      />
+    </>
+  );
+}
+
+// ─── Add Task Modal ─────────────────────────────────────────────────────────
+function AddTaskModal({ open, onClose, lessons }: { open: boolean; onClose: () => void; lessons: any[] }) {
+  const { t } = useLang();
+  const create = useMutation(api.tasks.create);
+  const [title, setTitle] = useState("");
+  const [lesson, setLesson] = useState<any>(null);
+  const [lessonPicker, setLessonPicker] = useState(false);
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [done, setDone] = useState(false);
+
+  const reset = () => { setTitle(""); setLesson(null); setPriority("medium"); setDone(false); };
+
+  const submit = async () => {
+    if (!title.trim()) return;
+    await create({
+      title,
+      subject: lesson?.subject || undefined,
+      dueDate: lesson?.startTime || undefined,
+      priority,
+    });
+    setDone(true);
+    setTimeout(() => { reset(); onClose(); }, 900);
+  };
+
+  return (
+    <>
+      <Modal open={open} onClose={() => { reset(); onClose(); }} title={t.addTask}>
+        <div className="space-y-3">
+          {done ? (
+            <div className="flex items-center gap-2 text-success py-2">
+              <CheckSquare size={16} /> {t.taskAdded}
+            </div>
+          ) : (
+            <>
+              <Input label={t.title} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="bijv. Samenvatting maken" />
+              <div>
+                <label className="text-xs font-medium text-ink-muted block mb-1">{t.priority}</label>
+                <div className="flex gap-2">
+                  {(["low", "medium", "high"] as const).map((p) => (
+                    <button key={p} onClick={() => setPriority(p)}
+                      className={clsx("px-3 py-1 text-xs rounded-full border transition-colors capitalize",
+                        priority === p ? "bg-ink text-white border-ink" : "border-border text-ink-muted hover:border-border-strong"
+                      )}>
+                      {t[p]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-ink-muted block mb-1">Les koppelen (optioneel)</label>
+                {lesson ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 rounded border border-accent/40 bg-accent/5 text-sm text-ink">
+                      {lesson.subject} · {format(new Date(lesson.startTime), "EEE d MMM · HH:mm")}
+                    </div>
+                    <button onClick={() => setLesson(null)} className="p-1.5 text-ink-muted hover:text-danger">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => setLessonPicker(true)}>
+                    {t.selectLesson}
+                  </Button>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="ghost" onClick={() => { reset(); onClose(); }}>{t.cancel}</Button>
+                <Button variant="primary" onClick={submit} disabled={!title.trim()}>{t.add}</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+      <LessonPickerModal
+        open={lessonPicker}
+        onClose={() => setLessonPicker(false)}
+        lessons={lessons}
+        onSelect={(l) => { setLesson(l); setLessonPicker(false); }}
+        title={t.pickLesson}
+      />
+    </>
+  );
+}
+
+// ─── Add Test Modal ─────────────────────────────────────────────────────────
+function AddTestModal({ open, onClose, lessons }: { open: boolean; onClose: () => void; lessons: any[] }) {
+  const { t } = useLang();
+  const create = useMutation(api.misc.createTest);
+  const [topic, setTopic] = useState("");
+  const [lesson, setLesson] = useState<any>(null);
+  const [lessonPicker, setLessonPicker] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const reset = () => { setTopic(""); setLesson(null); setDone(false); };
+
+  const submit = async () => {
+    if (!topic.trim() || !lesson) return;
+    await create({ topic, subject: lesson.subject, date: lesson.startTime, lessonId: lesson._id });
+    setDone(true);
+    setTimeout(() => { reset(); onClose(); }, 900);
+  };
+
+  return (
+    <>
+      <Modal open={open} onClose={() => { reset(); onClose(); }} title={t.addTest}>
+        <div className="space-y-3">
+          {done ? (
+            <div className="flex items-center gap-2 text-success py-2">
+              <FlaskConical size={16} /> {t.testAdded}
+            </div>
+          ) : (
+            <>
+              <Input label={t.topic} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="bijv. Hoofdstuk 4" />
+              <div>
+                <label className="text-xs font-medium text-ink-muted block mb-1">{t.selectLesson}</label>
+                {lesson ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 rounded border border-accent/40 bg-accent/5 text-sm text-ink">
+                      {lesson.subject} · {format(new Date(lesson.startTime), "EEE d MMM · HH:mm")}
+                    </div>
+                    <button onClick={() => setLesson(null)} className="p-1.5 text-ink-muted hover:text-danger">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => setLessonPicker(true)}>
+                    {t.selectLesson}
+                  </Button>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="ghost" onClick={() => { reset(); onClose(); }}>{t.cancel}</Button>
+                <Button variant="primary" onClick={submit} disabled={!lesson || !topic.trim()}>{t.add}</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+      <LessonPickerModal
+        open={lessonPicker}
+        onClose={() => setLessonPicker(false)}
+        lessons={lessons}
+        onSelect={(l) => { setLesson(l); setLessonPicker(false); }}
+        title={t.pickLesson}
+      />
+    </>
+  );
+}
+
+// ─── + Dropdown Button ──────────────────────────────────────────────────────
+function AddDropdown({ lessons }: { lessons: any[] }) {
+  const { t } = useLang();
+  const [open, setOpen] = useState(false);
+  const [modal, setModal] = useState<"homework" | "task" | "test" | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const items = [
+    { key: "homework", label: t.addHomework, icon: ClipboardList, color: "text-emerald-600" },
+    { key: "task",     label: t.addTask,     icon: CheckSquare,   color: "text-blue-600" },
+    { key: "test",     label: t.addTest,     icon: FlaskConical,  color: "text-purple-600" },
+  ] as const;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={clsx(
+          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+          open ? "bg-accent text-white" : "bg-accent text-white hover:bg-accent-hover"
+        )}
+      >
+        <Plus size={13} />
+        {t.addToCalendar}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 bg-surface border border-border rounded-xl shadow-modal w-52 py-1.5 animate-slide-up">
+          {items.map(({ key, label, icon: Icon, color }) => (
+            <button
+              key={key}
+              onClick={() => { setModal(key); setOpen(false); }}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-ink hover:bg-border/40 transition-colors"
+            >
+              <Icon size={14} className={color} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <AddHomeworkModal open={modal === "homework"} onClose={() => setModal(null)} lessons={lessons} />
+      <AddTaskModal     open={modal === "task"}     onClose={() => setModal(null)} lessons={lessons} />
+      <AddTestModal     open={modal === "test"}     onClose={() => setModal(null)} lessons={lessons} />
+    </div>
+  );
+}
+
+// ─── Main Calendar Page ─────────────────────────────────────────────────────
 export default function CalendarPage() {
+  const { user } = useUser();
+  const { t } = useLang();
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd }).slice(0, 5);
 
+  const settings = useQuery(api.userSettings.get);
+  const syncCalendar = useAction(api.ical.syncCalendar);
+  const [autoSynced, setAutoSynced] = useState(false);
+
+  // Auto-sync iCal when page opens, if URL is configured
+  useEffect(() => {
+    if (!autoSynced && settings?.icalUrl && user?.id) {
+      setAutoSynced(true);
+      syncCalendar({ userId: user.id, icalUrl: settings.icalUrl }).catch(() => {
+        // Silent fail — user can manually sync in settings
+      });
+    }
+  }, [settings, user, autoSynced, syncCalendar]);
+
   const lessons      = useQuery(api.lessons.getRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
   const tests        = useQuery(api.misc.getTests);
   const appointments = useQuery(api.misc.getAppointments);
   const homework     = useQuery(api.homework.getAll);
+  const allLessons   = useQuery(api.lessons.getAll);
   const homeworkSessions = useQuery(studyApi.getHomeworkSessionsInRange, {
-    from: weekStart.getTime(),
-    to: weekEnd.getTime(),
+    from: weekStart.getTime(), to: weekEnd.getTime(),
   });
   const rehearsalSessions = useQuery(studyApi.getRehearsalSessionsInRange, {
-    from: weekStart.getTime(),
-    to: weekEnd.getTime(),
+    from: weekStart.getTime(), to: weekEnd.getTime(),
   });
   const studySessions = useQuery(studyApi.getStudySessionsInRange, {
-    from: weekStart.getTime(),
-    to: weekEnd.getTime(),
+    from: weekStart.getTime(), to: weekEnd.getTime(),
   });
 
   const homeworkLessonIds = useMemo(
@@ -168,22 +516,25 @@ export default function CalendarPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Rooster"
+        title={t.rooster}
         subtitle={`${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`}
         actions={
-          <div className="flex items-center gap-1">
-            <button onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-              className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink">
-              <ChevronLeft size={16} />
-            </button>
-            <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-              className="px-2.5 py-1 text-xs rounded border border-border hover:bg-border transition-colors text-ink-muted">
-              Today
-            </button>
-            <button onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-              className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink">
-              <ChevronRight size={16} />
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <button onClick={() => setWeekStart(subWeeks(weekStart, 1))}
+                className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink">
+                <ChevronLeft size={16} />
+              </button>
+              <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+                className="px-2.5 py-1 text-xs rounded border border-border hover:bg-border transition-colors text-ink-muted">
+                {t.today2}
+              </button>
+              <button onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+                className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <AddDropdown lessons={allLessons ?? []} />
           </div>
         }
       />
@@ -212,7 +563,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {getStudySessionsAt(day).length > 0 && (
-                    <div title={`${getStudySessionsAt(day).length} study session(s)`}>
+                    <div title={`${getStudySessionsAt(day).length} studie sessie(s)`}>
                       <BookOpen size={12} className="text-purple-400" />
                     </div>
                   )}
@@ -228,7 +579,7 @@ export default function CalendarPage() {
                 <div className="grid gap-x-1 items-center"
                   style={{ gridTemplateColumns: "52px repeat(5, 1fr)", height: breakHeightPx(idx) }}>
                   <div className="text-right pr-2">
-                    <span className="text-[9px] text-ink-light italic">pauze</span>
+                    <span className="text-[9px] text-ink-light italic">{t.break}</span>
                   </div>
                   {days.map((day) => (
                     <div key={day.toISOString()} className="h-full bg-border/20 rounded mx-0.5" />
@@ -275,10 +626,10 @@ export default function CalendarPage() {
                                 </span>
                                 <div className="flex items-center gap-1">
                                   {homeworkLessonIds.has(String(l._id)) && (
-                                    <span className="h-2.5 w-2.5 rounded-full bg-purple-500" title="Homework assigned" />
+                                    <span className="h-2.5 w-2.5 rounded-full bg-purple-500" title="Huiswerk" />
                                   )}
                                   {testLessonIds.has(String(l._id)) && (
-                                    <span className="block" title="Test assigned"
+                                    <span className="block" title="Toets"
                                       style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "8px solid #8b5cf6" }} />
                                   )}
                                 </div>
@@ -315,7 +666,7 @@ export default function CalendarPage() {
               </div>
 
               {days.map((day) => {
-                const appts = appointmentsInHour(appointments ?? [], day, hour);
+                const appts  = appointmentsInHour(appointments ?? [], day, hour);
                 const studys = studySessionsInHour(studySessions ?? [], day, hour);
                 const hwSess = homeworkSessionsInHour(homeworkSessions ?? [], day, hour);
                 const rehSess = rehearsalSessionsInHour(rehearsalSessions ?? [], day, hour);
@@ -351,13 +702,10 @@ export default function CalendarPage() {
                       >
                         <div className="flex items-center gap-1">
                           <BookOpen size={9} className="text-purple-500 flex-shrink-0" />
-                          <span className="text-[11px] font-semibold leading-tight truncate text-purple-800">
-                            {s.title}
-                          </span>
+                          <span className="text-[11px] font-semibold leading-tight truncate text-purple-800">{s.title}</span>
                         </div>
                         <span className="text-[10px] text-purple-600 leading-tight">
-                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
-                          {s.done && " ✓"}
+                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}
                         </span>
                       </div>
                     ))}
@@ -371,13 +719,10 @@ export default function CalendarPage() {
                       >
                         <div className="flex items-center gap-1">
                           <ClipboardList size={9} className="text-emerald-500 flex-shrink-0" />
-                          <span className="text-[11px] font-semibold leading-tight truncate text-emerald-800">
-                            {s.title}
-                          </span>
+                          <span className="text-[11px] font-semibold leading-tight truncate text-emerald-800">{s.title}</span>
                         </div>
                         <span className="text-[10px] text-emerald-600 leading-tight">
-                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
-                          {s.done && " ✓"}
+                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}
                         </span>
                       </div>
                     ))}
@@ -391,13 +736,10 @@ export default function CalendarPage() {
                       >
                         <div className="flex items-center gap-1">
                           <RefreshCw size={9} className="text-amber-500 flex-shrink-0" />
-                          <span className="text-[11px] font-semibold leading-tight truncate text-amber-800">
-                            {s.title}
-                          </span>
+                          <span className="text-[11px] font-semibold leading-tight truncate text-amber-800">{s.title}</span>
                         </div>
                         <span className="text-[10px] text-amber-600 leading-tight">
-                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}
-                          {s.done && " ✓"}
+                          {format(new Date(s.startTime), "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}
                         </span>
                       </div>
                     ))}

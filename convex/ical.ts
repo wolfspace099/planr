@@ -21,9 +21,9 @@ function decodeIcalText(text: string): string {
 
 const SUBJECT_MAP: Record<string, string> = {
   wis: "Wiskunde", wi: "Wiskunde",
-  ned: "Nederlands", nl: "Nederlands", dutl: "Nederlands", netl: "Nederlands",
+  ned: "Nederlands", nl: "Nederlands", netl: "Nederlands",
   en: "Engels", eng: "Engels", eng2: "Engels",
-  du: "Duits", dui: "Duits",
+  du: "Duits", dui: "Duits", dutl: "Duits",
   fr: "Frans", fra: "Frans",
   bi: "Biologie", bio: "Biologie", biol: "Biologie",
   na: "Natuurkunde", nat: "Natuurkunde",

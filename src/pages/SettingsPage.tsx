@@ -3,8 +3,9 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { format } from "date-fns";
-import { RefreshCw, Link2, CheckCircle, AlertCircle, Moon, Sun } from "lucide-react";
+import { RefreshCw, Link2, CheckCircle, AlertCircle, Moon, Sun, Globe } from "lucide-react";
 import { PageHeader, Input, Button } from "../components/ui/primitives";
+import { useLang, type Lang } from "../i18n";
 import clsx from "clsx";
 
 export default function SettingsPage() {
@@ -12,6 +13,7 @@ export default function SettingsPage() {
   const settings = useQuery(api.userSettings.get);
   const upsert = useMutation(api.userSettings.upsert);
   const syncCalendar = useAction(api.ical.syncCalendar);
+  const { t, lang, setLang } = useLang();
 
   const [icalUrl, setIcalUrl] = useState("");
   const [syncing, setSyncing] = useState(false);
@@ -53,13 +55,10 @@ export default function SettingsPage() {
     setSyncResult(null);
     setSyncError(null);
     try {
-      const result = await syncCalendar({
-        userId: user!.id,
-        icalUrl: url,
-      });
-      setSyncResult(`Synced ${result.count} lessons successfully.`);
+      const result = await syncCalendar({ userId: user!.id, icalUrl: url });
+      setSyncResult(lang === "nl" ? `${result.count} lessen gesynchroniseerd.` : `Synced ${result.count} lessons successfully.`);
     } catch (e: any) {
-      setSyncError(e.message ?? "Sync failed");
+      setSyncError(e.message ?? "Sync mislukt");
     } finally {
       setSyncing(false);
     }
@@ -67,12 +66,12 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Settings" />
+      <PageHeader title={t.settingsTitle} />
 
       <div className="max-w-xl space-y-8">
         {/* Profile */}
         <section>
-          <h2 className="text-sm font-semibold text-ink mb-3">Account</h2>
+          <h2 className="text-sm font-semibold text-ink mb-3">{t.account}</h2>
           <div className="p-4 bg-surface border border-border rounded-lg flex items-center gap-3">
             {user?.imageUrl && (
               <img src={user.imageUrl} className="w-9 h-9 rounded-full" />
@@ -86,11 +85,11 @@ export default function SettingsPage() {
 
         {/* Theme */}
         <section>
-          <h2 className="text-sm font-semibold text-ink mb-3">Appearance</h2>
+          <h2 className="text-sm font-semibold text-ink mb-3">{t.appearance}</h2>
           <div className="p-4 bg-surface border border-border rounded-lg flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm text-ink">Dark mode</p>
-              <p className="text-xs text-ink-muted mt-1">Switch between light and dark theme</p>
+              <p className="font-medium text-sm text-ink">{t.darkMode}</p>
+              <p className="text-xs text-ink-muted mt-1">{t.darkModeDesc}</p>
             </div>
             <button
               onClick={toggleTheme}
@@ -109,12 +108,44 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Language */}
+        <section>
+          <h2 className="text-sm font-semibold text-ink mb-3">{t.language}</h2>
+          <div className="p-4 bg-surface border border-border rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe size={15} className="text-ink-muted" />
+              <div>
+                <p className="font-medium text-sm text-ink">{t.language}</p>
+                <p className="text-xs text-ink-muted mt-0.5">{t.languageDesc}</p>
+              </div>
+            </div>
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {(["nl", "en"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={clsx(
+                    "px-3 py-1.5 text-xs font-semibold transition-colors",
+                    lang === l ? "bg-accent text-white" : "text-ink-muted hover:bg-border/60"
+                  )}
+                >
+                  {l === "nl" ? "🇳🇱 NL" : "🇬🇧 EN"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* iCal sync */}
         <section>
-          <h2 className="text-sm font-semibold text-ink mb-1">Zermelo calendar</h2>
+          <h2 className="text-sm font-semibold text-ink mb-1">{t.zermeloCalendar}</h2>
           <p className="text-xs text-ink-muted mb-3">
-            Paste your iCal URL from Zermelo. You can find it in Zermelo under{" "}
-            <em>Settings → Calendar → iCal link</em>.
+            {t.zermeloDesc}{" "}
+            <em>{t.zermeloDescLink}</em>.
+          </p>
+          <p className="text-xs text-ink-muted mb-3 flex items-center gap-1.5">
+            <RefreshCw size={11} className="text-accent" />
+            {t.autoSyncNote}
           </p>
 
           <div className="p-4 bg-surface border border-border rounded-lg space-y-3">
@@ -130,7 +161,7 @@ export default function SettingsPage() {
 
             {settings?.lastIcalSync && (
               <p className="text-xs text-ink-light">
-                Last synced: {format(new Date(settings.lastIcalSync), "d MMM yyyy, HH:mm")}
+                {t.lastSynced}: {format(new Date(settings.lastIcalSync), "d MMM yyyy, HH:mm")}
               </p>
             )}
 
@@ -147,7 +178,7 @@ export default function SettingsPage() {
 
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={handleSaveUrl}>
-                {saved ? "Saved ✓" : "Save URL"}
+                {saved ? t.saved : t.saveUrl}
               </Button>
               <Button
                 size="sm"
@@ -156,7 +187,7 @@ export default function SettingsPage() {
                 disabled={syncing || (!icalUrl && !currentUrl)}
               >
                 <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
-                {syncing ? "Syncing…" : "Sync now"}
+                {syncing ? t.syncing : t.syncNow}
               </Button>
             </div>
           </div>
