@@ -17,11 +17,11 @@ import { PageHeader, Modal, Input, Textarea, Button } from "../components/ui/pri
 import { useLang } from "../i18n";
 import clsx from "clsx";
 
-const HOUR_HEIGHT = 56;
+const HOUR_HEIGHT = 68;
 const START_HOUR  = 7;
 const END_HOUR    = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
-const TIME_COL_W  = 52;
+const TIME_COL_W  = 64;
 
 function toTopPx(date: Date): number {
   const h = date.getHours() + date.getMinutes() / 60;
@@ -425,7 +425,7 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   ];
 
   return (
-    <div className="w-52 flex-shrink-0 border-r border-border bg-surface/40 flex flex-col overflow-y-auto">
+    <div className="w-64 flex-shrink-0 border-r border-border bg-surface/40 flex flex-col overflow-y-auto">
       <div className="px-4 py-3 border-b border-border">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Agenda's</p>
       </div>
@@ -486,12 +486,94 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
 // ─── Event chip interface ────────────────────────────────────────────────────
 interface EventChip { key: string; top: number; height: number; node: React.ReactNode; }
 
+type CalendarViewMode = "week" | "studyPlanner";
+
+type PlannerBlock = {
+  id: string;
+  title: string;
+  subtitle: string;
+  tone: "test" | "homework" | "study" | "task";
+};
+
+function StudyPlannerBoard({
+  days,
+  weekLabel,
+  weekFocus,
+  dayBlocks,
+}: {
+  days: Date[];
+  weekLabel: string;
+  weekFocus: PlannerBlock[];
+  dayBlocks: Record<string, PlannerBlock[]>;
+}) {
+  const toneClasses: Record<PlannerBlock["tone"], string> = {
+    test: "border-purple-200 bg-purple-50 text-purple-800",
+    homework: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    study: "border-blue-200 bg-blue-50 text-blue-800",
+    task: "border-amber-200 bg-amber-50 text-amber-800",
+  };
+
+  return (
+    <div className="h-full overflow-auto">
+      <div className="min-w-[1080px] rounded-2xl border border-border bg-surface">
+        <div className="grid border-b border-border" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
+          <div className="px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Week focus</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{weekLabel}</p>
+          </div>
+          {days.map((day) => (
+            <div key={`header-${day.toISOString()}`} className="border-l border-border px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{format(day, "EEEE")}</p>
+              <p className={clsx("mt-1 text-2xl font-semibold", isToday(day) ? "text-accent" : "text-ink")}>{format(day, "d")}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid min-h-[640px]" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
+          <div className="space-y-3 border-r border-border bg-bg/40 p-4">
+            {weekFocus.length === 0 ? (
+              <p className="text-sm text-ink-light">No tests or homework due this week.</p>
+            ) : (
+              weekFocus.map((item) => (
+                <div key={item.id} className={clsx("rounded-xl border p-3", toneClasses[item.tone])}>
+                  <p className="text-sm font-semibold leading-tight">{item.title}</p>
+                  <p className="mt-1 text-xs opacity-80">{item.subtitle}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {days.map((day) => {
+            const key = format(day, "yyyy-MM-dd");
+            const items = dayBlocks[key] ?? [];
+            return (
+              <div key={`column-${day.toISOString()}`} className="space-y-3 border-l border-border p-4">
+                {items.length === 0 ? (
+                  <p className="pt-1 text-sm text-ink-light">No blocks planned.</p>
+                ) : (
+                  items.map((item) => (
+                    <div key={item.id} className={clsx("rounded-xl border p-3.5", toneClasses[item.tone])}>
+                      <p className="text-sm font-semibold leading-tight">{item.title}</p>
+                      <p className="mt-1 text-xs opacity-80">{item.subtitle}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Calendar Page ─────────────────────────────────────────────────────
 export default function CalendarPage() {
   const { user } = useUser();
   const { t } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd }).slice(0, 5);
@@ -519,6 +601,7 @@ export default function CalendarPage() {
   const tests             = useQuery(api.misc.getTests);
   const appointments      = useQuery(api.misc.getAppointments);
   const homework          = useQuery(api.homework.getAll);
+  const tasks             = useQuery(api.tasks.getAll);
   const allLessons        = useQuery(api.lessons.getAll);
   const homeworkSessions  = useQuery(studyApi.getHomeworkSessionsInRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
   const rehearsalSessions = useQuery(studyApi.getRehearsalSessionsInRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
@@ -533,6 +616,117 @@ export default function CalendarPage() {
   const weekTests = (tests ?? []).filter((tt) => {
     const d = new Date(tt.date); return d >= weekStart && d <= weekEnd;
   });
+  const weekHomework = (homework ?? []).filter((hw: any) => {
+    const d = new Date(hw.dueDate);
+    return d >= weekStart && d <= weekEnd;
+  });
+  const weekTasks = (tasks ?? []).filter((task: any) => {
+    if (!task.dueDate) return false;
+    const d = new Date(task.dueDate);
+    return d >= weekStart && d <= weekEnd;
+  });
+
+  const plannerDayBlocks = useMemo(() => {
+    const blocks: Record<string, PlannerBlock[]> = {};
+    const keyFor = (date: Date) => format(date, "yyyy-MM-dd");
+    days.forEach((day) => { blocks[keyFor(day)] = []; });
+
+    (weekTests ?? []).forEach((test) => {
+      const d = new Date(test.date);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `test-${test._id}`,
+        title: test.topic,
+        subtitle: `Test · ${test.subject}`,
+        tone: "test",
+      });
+    });
+
+    (weekHomework ?? []).forEach((hw: any) => {
+      const d = new Date(hw.dueDate);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `homework-${hw._id}`,
+        title: hw.title,
+        subtitle: `Homework · ${hw.subject}`,
+        tone: "homework",
+      });
+    });
+
+    (weekTasks ?? []).forEach((task: any) => {
+      const d = new Date(task.dueDate);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `task-${task._id}`,
+        title: task.title,
+        subtitle: `Task${task.subject ? ` · ${task.subject}` : ""}`,
+        tone: "task",
+      });
+    });
+
+    (studySessions ?? []).forEach((session: any) => {
+      const d = new Date(session.startTime);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `study-${session._id}`,
+        title: session.title,
+        subtitle: `Study · ${format(d, "HH:mm")} - ${format(new Date(session.endTime), "HH:mm")}`,
+        tone: "study",
+      });
+    });
+
+    (homeworkSessions ?? []).forEach((session: any) => {
+      const d = new Date(session.startTime);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `homework-session-${session._id}`,
+        title: session.title,
+        subtitle: `Homework session · ${format(d, "HH:mm")}`,
+        tone: "homework",
+      });
+    });
+
+    (rehearsalSessions ?? []).forEach((session: any) => {
+      const d = new Date(session.startTime);
+      const key = keyFor(d);
+      if (!blocks[key]) return;
+      blocks[key].push({
+        id: `rehearsal-${session._id}`,
+        title: session.title,
+        subtitle: `Rehearsal · ${format(d, "HH:mm")}`,
+        tone: "study",
+      });
+    });
+
+    Object.keys(blocks).forEach((dayKey) => {
+      blocks[dayKey] = blocks[dayKey].sort((a, b) => a.title.localeCompare(b.title));
+    });
+
+    return blocks;
+  }, [days, weekTests, weekHomework, weekTasks, studySessions, homeworkSessions, rehearsalSessions]);
+
+  const plannerWeekFocus = useMemo(() => {
+    const focus = [
+      ...(weekTests ?? []).map((test) => ({
+        id: `week-focus-test-${test._id}`,
+        title: test.topic,
+        subtitle: `${format(new Date(test.date), "EEE d MMM")} · ${test.subject}`,
+        tone: "test" as const,
+      })),
+      ...(weekHomework ?? []).map((hw: any) => ({
+        id: `week-focus-homework-${hw._id}`,
+        title: hw.title,
+        subtitle: `${format(new Date(hw.dueDate), "EEE d MMM")} · ${hw.subject}`,
+        tone: "homework" as const,
+      })),
+    ];
+    return focus.sort((a, b) => a.subtitle.localeCompare(b.subtitle));
+  }, [weekTests, weekHomework]);
 
   const calendarVisible = useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -641,103 +835,134 @@ export default function CalendarPage() {
         title={t.rooster}
         subtitle={`${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
+              <button
+                onClick={() => setViewMode("week")}
+                className={clsx(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                  viewMode === "week" ? "bg-accent text-white" : "text-ink-muted hover:text-ink"
+                )}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setViewMode("studyPlanner")}
+                className={clsx(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                  viewMode === "studyPlanner" ? "bg-accent text-white" : "text-ink-muted hover:text-ink"
+                )}
+              >
+                Study planner
+              </button>
+            </div>
             <div className="flex items-center gap-1">
               <button onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-                className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink"><ChevronLeft size={16} /></button>
+                className="rounded-lg p-2 text-ink-muted transition-colors hover:bg-border hover:text-ink"><ChevronLeft size={16} /></button>
               <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-                className="px-2.5 py-1 text-xs rounded border border-border hover:bg-border transition-colors text-ink-muted">{t.today2}</button>
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-border">{t.today2}</button>
               <button onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-                className="p-1.5 rounded hover:bg-border transition-colors text-ink-muted hover:text-ink"><ChevronRight size={16} /></button>
+                className="rounded-lg p-2 text-ink-muted transition-colors hover:bg-border hover:text-ink"><ChevronRight size={16} /></button>
             </div>
             <AddDropdown lessons={allLessons ?? []} calendars={calendars} />
           </div>
         }
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden rounded-2xl border border-border bg-surface">
         {/* Calendar side panel — only shown when user has calendars */}
         {calendars.length > 0 && <CalendarSidePanel calendars={calendars} />}
 
         {/* Grid area */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-          {/* Day headers */}
-          <div className="overflow-x-auto flex-shrink-0 border-b border-border">
-            <div className="min-w-[500px]">
-              <div className="grid" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)` }}>
-                <div />
-                {days.map((day) => (
-                  <div key={day.toISOString()} className="text-center py-2">
-                    <p className="text-[11px] text-ink-muted font-medium uppercase tracking-wider">{format(day, "EEE")}</p>
-                    <p className={clsx("text-sm font-semibold mt-0.5 w-7 h-7 rounded-full flex items-center justify-center mx-auto",
-                      isToday(day) ? "bg-accent text-white" : "text-ink")}>{format(day, "d")}</p>
-                    <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
-                      {weekTests.filter((tt) => isSameDay(new Date(tt.date), day)).map((tt) => (
-                        <span key={tt._id} title={`Toets: ${tt.topic}`}><FlaskConical size={11} className="text-purple-500" /></span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Scrollable time grid */}
-          <div ref={scrollRef} className="overflow-y-auto overflow-x-auto flex-1">
-            <div className="min-w-[500px]">
-              <div className="grid relative" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)`, height: totalGridHeight }}>
-                {/* Hour labels */}
-                <div className="relative">
-                  {hours.map((h, i) => (
-                    <div key={h} className="absolute w-full flex items-start justify-end pr-2"
-                      style={{ top: i * HOUR_HEIGHT - 8, height: HOUR_HEIGHT }}>
-                      <span className="text-[10px] text-ink-light font-medium leading-none">{String(h).padStart(2, "0")}:00</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Day columns */}
-                {days.map((day, dayIdx) => {
-                  const chips = getChipsForDay(day);
-                  return (
-                    <div key={day.toISOString()}
-                      className={clsx("relative border-l border-border/30 cursor-pointer group",
-                        dayIdx === 0 && "border-l-0",
-                        isToday(day) && "bg-accent/[0.015]"
-                      )}
-                      style={{ height: totalGridHeight }}
-                      onClick={(e) => handleColumnClick(e, day)}
-                    >
-                      {hours.map((h, i) => (
-                        <div key={h} className={clsx("absolute w-full border-t", i === 0 ? "border-border/60" : "border-border/25")}
-                          style={{ top: i * HOUR_HEIGHT }} />
-                      ))}
-                      {hours.map((h, i) => (
-                        <div key={`half-${h}`} className="absolute w-full border-t border-border/10 border-dashed"
-                          style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
-                      ))}
-                      {/* Hover hint overlay */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                        <div className="absolute inset-0 bg-accent/[0.03]" />
+          {viewMode === "studyPlanner" ? (
+            <StudyPlannerBoard
+              days={days}
+              weekLabel={`${format(weekStart, "d MMM")} - ${format(weekEnd, "d MMM yyyy")}`}
+              weekFocus={plannerWeekFocus}
+              dayBlocks={plannerDayBlocks}
+            />
+          ) : (
+            <>
+              {/* Day headers */}
+              <div className="overflow-x-auto flex-shrink-0 border-b border-border">
+                <div className="min-w-[900px]">
+                  <div className="grid" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)` }}>
+                    <div />
+                    {days.map((day) => (
+                      <div key={day.toISOString()} className="py-3 text-center">
+                        <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">{format(day, "EEE")}</p>
+                        <p className={clsx("mx-auto mt-1 flex h-9 w-9 items-center justify-center rounded-full text-lg font-semibold",
+                          isToday(day) ? "bg-accent text-white" : "text-ink")}>{format(day, "d")}</p>
+                        <div className="mt-1 flex min-h-[14px] items-center justify-center gap-1">
+                          {weekTests.filter((tt) => isSameDay(new Date(tt.date), day)).map((tt) => (
+                            <span key={tt._id} title={`Toets: ${tt.topic}`}><FlaskConical size={12} className="text-purple-500" /></span>
+                          ))}
+                        </div>
                       </div>
-                      {chips.map((chip) => (
-                        <div key={chip.key} data-event="1" className="absolute px-0.5"
-                          style={{ top: chip.top, height: chip.height, left: 2, right: 2 }}
-                          onClick={(e) => e.stopPropagation()}>
-                          {chip.node}
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable time grid */}
+              <div ref={scrollRef} className="overflow-y-auto overflow-x-auto flex-1">
+                <div className="min-w-[900px]">
+                  <div className="grid relative" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)`, height: totalGridHeight }}>
+                    {/* Hour labels */}
+                    <div className="relative">
+                      {hours.map((h, i) => (
+                        <div key={h} className="absolute w-full flex items-start justify-end pr-2"
+                          style={{ top: i * HOUR_HEIGHT - 8, height: HOUR_HEIGHT }}>
+                          <span className="text-xs text-ink-light font-medium leading-none">{String(h).padStart(2, "0")}:00</span>
                         </div>
                       ))}
                     </div>
-                  );
-                })}
 
-                {/* Now line */}
-                <div className="absolute pointer-events-none" style={{ top: 0, left: TIME_COL_W, right: 0, height: totalGridHeight }}>
-                  <NowLine days={days} />
+                    {/* Day columns */}
+                    {days.map((day, dayIdx) => {
+                      const chips = getChipsForDay(day);
+                      return (
+                        <div key={day.toISOString()}
+                          className={clsx("relative border-l border-border/30 cursor-pointer group",
+                            dayIdx === 0 && "border-l-0",
+                            isToday(day) && "bg-accent/[0.015]"
+                          )}
+                          style={{ height: totalGridHeight }}
+                          onClick={(e) => handleColumnClick(e, day)}
+                        >
+                          {hours.map((h, i) => (
+                            <div key={h} className={clsx("absolute w-full border-t", i === 0 ? "border-border/60" : "border-border/25")}
+                              style={{ top: i * HOUR_HEIGHT }} />
+                          ))}
+                          {hours.map((h, i) => (
+                            <div key={`half-${h}`} className="absolute w-full border-t border-border/10 border-dashed"
+                              style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
+                          ))}
+                          {/* Hover hint overlay */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                            <div className="absolute inset-0 bg-accent/[0.03]" />
+                          </div>
+                          {chips.map((chip) => (
+                            <div key={chip.key} data-event="1" className="absolute px-1"
+                              style={{ top: chip.top, height: chip.height, left: 3, right: 3 }}
+                              onClick={(e) => e.stopPropagation()}>
+                              {chip.node}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+
+                    {/* Now line */}
+                    <div className="absolute pointer-events-none" style={{ top: 0, left: TIME_COL_W, right: 0, height: totalGridHeight }}>
+                      <NowLine days={days} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
 

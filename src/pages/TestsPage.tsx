@@ -374,16 +374,16 @@ export function HabitsPage() {
       {(habits?.length ?? 0) === 0 ? (
         <EmptyState icon={<Repeat2 size={28} />} title="No habits yet" action={<Button size="sm" onClick={() => setModal(true)}>Add a habit</Button>} />
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {habits?.filter((h) => h.active).map((h) => {
             const done = completedIds.has(h._id);
             return (
               <button key={h._id} onClick={() => toggle({ habitId: h._id, date: todayStr })}
-                className={clsx("p-4 rounded-xl border text-left transition-all",
+                className={clsx("p-5 rounded-xl border text-left transition-all",
                   done ? "bg-success-light border-green-200" : "bg-surface border-border hover:border-border-strong hover:shadow-card"
                 )}>
-                <div className="text-2xl mb-2">{h.emoji ?? "✓"}</div>
-                <p className="font-medium text-sm text-ink">{h.name}</p>
+                <div className="mb-2 text-3xl">{h.emoji ?? "✓"}</div>
+                <p className="text-base font-semibold text-ink">{h.name}</p>
                 <p className={clsx("text-xs mt-1", done ? "text-success" : "text-ink-muted")}>
                   {done ? "Done today ✓" : "Not yet"}
                 </p>
@@ -555,3 +555,4 @@ function ApptRow({ appt, onDelete }: { appt: any; onDelete: () => void }) {
 }
 
 export default TestsPage;
+

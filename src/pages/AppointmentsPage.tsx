@@ -131,7 +131,7 @@ export default function AppointmentsPage() {
         }
       />
 
-      <div className="max-w-2xl space-y-4">
+      <div className="w-full max-w-5xl space-y-5">
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">
           {[
@@ -164,14 +164,14 @@ export default function AppointmentsPage() {
             <p className="text-xs text-ink-light mt-1">Klik op "+ Afspraak" om een afspraak aan te maken, of klik op de kalender om direct in te plannen.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filtered.map((a) => {
               const cal = getCalendar(a.calendarId);
               const color = cal?.color ?? a.color ?? "#6B7280";
               const isPastAppt = a.startTime && isPast(new Date(a.startTime));
               return (
                 <div key={a._id}
-                  className={clsx("p-3 bg-surface border border-border rounded-xl flex items-start gap-3 transition-colors hover:border-border-strong",
+                  className={clsx("p-4 bg-surface border border-border rounded-xl flex items-start gap-3 transition-colors hover:border-border-strong",
                     isPastAppt && "opacity-60")}
                   style={{ borderLeftColor: color, borderLeftWidth: 3 }}>
                   <div className="flex-1 min-w-0">

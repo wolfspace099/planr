@@ -20,8 +20,8 @@ export function Button({
     <button
       className={clsx(
         "inline-flex items-center gap-1.5 font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed",
-        size === "sm" && "px-2.5 py-1 text-xs",
-        size === "md" && "px-3.5 py-2 text-sm",
+        size === "sm" && "px-3 py-1.5 text-xs",
+        size === "md" && "px-4 py-2.5 text-sm",
         variant === "primary" && "bg-accent text-white hover:bg-accent-hover",
         variant === "secondary" &&
           "bg-surface border border-border text-ink hover:bg-bg hover:border-border-strong",
@@ -204,12 +204,12 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between mb-7">
+    <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold text-ink tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
           {title}
         </h1>
-        {subtitle && <p className="text-sm text-ink-muted mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="mt-1 text-base text-ink-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

@@ -9,7 +9,7 @@ export default function AppLayout() {
     <div className="flex h-screen bg-bg overflow-hidden">
       <Sidebar collapsed={collapsed} onToggleCollapsed={() => setCollapsed((value) => !value)} />
       <main className={collapsed ? "ml-16 flex-1 overflow-y-auto transition-all duration-200" : "ml-56 flex-1 overflow-y-auto transition-all duration-200"}>
-        <div className="max-w-4xl mx-auto px-8 py-8">
+        <div className="mx-auto w-full max-w-[1700px] px-4 py-6 md:px-8 md:py-8">
           <Outlet />
         </div>
       </main>
