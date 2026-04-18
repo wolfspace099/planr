@@ -120,6 +120,7 @@ export const createAppointment = mutation({
     recurringTimeHHMM: v.optional(v.string()),
     recurringEndDate: v.optional(v.number()),
     color: v.optional(v.string()),
+    calendarId: v.optional(v.id("calendars")),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);

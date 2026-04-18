@@ -162,5 +162,16 @@ export default defineSchema({
     recurringTimeHHMM: v.optional(v.string()),
     recurringEndDate: v.optional(v.number()),
     color: v.optional(v.string()),
+    calendarId: v.optional(v.id("calendars")),
+  }).index("by_user", ["userId"]),
+
+  calendars: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    color: v.string(),
+    visible: v.boolean(),
+    isSchedule: v.optional(v.boolean()),
+    icalUrl: v.optional(v.string()),
+    order: v.number(),
   }).index("by_user", ["userId"]),
 });

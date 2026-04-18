@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as calendars from "../calendars.js";
 import type * as homework from "../homework.js";
 import type * as ical from "../ical.js";
 import type * as lessons from "../lessons.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  calendars: typeof calendars;
   homework: typeof homework;
   ical: typeof ical;
   lessons: typeof lessons;

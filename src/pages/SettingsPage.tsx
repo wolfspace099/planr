@@ -3,10 +3,111 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { format } from "date-fns";
-import { RefreshCw, Link2, CheckCircle, AlertCircle, Moon, Sun, Globe } from "lucide-react";
+import { RefreshCw, Link2, CheckCircle, AlertCircle, Moon, Sun, Globe, Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { PageHeader, Input, Button } from "../components/ui/primitives";
 import { useLang, type Lang } from "../i18n";
 import clsx from "clsx";
+
+const CALENDAR_COLORS = [
+  "#8B5CF6", "#3B82F6", "#10B981", "#F59E0B",
+  "#EF4444", "#EC4899", "#06B6D4", "#84CC16",
+  "#F97316", "#6366F1",
+];
+
+function CalendarsSection() {
+  const calendars = useQuery(api.calendars.getAll) ?? [];
+  const createCal = useMutation(api.calendars.create);
+  const removeCal = useMutation(api.calendars.remove);
+  const updateCal = useMutation(api.calendars.update);
+
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(CALENDAR_COLORS[0]);
+  const [isSchedule, setIsSchedule] = useState(false);
+  const [icalUrl, setIcalUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    await createCal({ name, color, isSchedule, icalUrl: icalUrl || undefined, order: calendars.length });
+    setName(""); setColor(CALENDAR_COLORS[0]); setIsSchedule(false); setIcalUrl("");
+    setShowForm(false); setSaving(false);
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-ink">Agenda's</h2>
+        <Button size="sm" variant="secondary" onClick={() => setShowForm((v) => !v)}>
+          <Plus size={13} /> Nieuwe agenda
+        </Button>
+      </div>
+
+      {/* Existing calendars */}
+      {calendars.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {calendars.map((cal) => (
+            <div key={cal._id} className="p-3 bg-surface border border-border rounded-lg flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: cal.color }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink truncate">{cal.name}</p>
+                {cal.isSchedule && <p className="text-xs text-ink-muted">Rooster</p>}
+                {cal.icalUrl && <p className="text-xs text-ink-muted truncate">{cal.icalUrl}</p>}
+              </div>
+              <button onClick={() => removeCal({ id: cal._id })}
+                className="p-1.5 text-ink-muted hover:text-danger transition-colors flex-shrink-0">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {calendars.length === 0 && !showForm && (
+        <div className="p-4 bg-surface border border-border rounded-lg text-center">
+          <CalendarIcon size={20} className="text-ink-muted mx-auto mb-2" />
+          <p className="text-sm text-ink-muted">Nog geen agenda's aangemaakt.</p>
+          <p className="text-xs text-ink-light mt-1">Maak een agenda aan om afspraken te organiseren.</p>
+        </div>
+      )}
+
+      {/* Create form */}
+      {showForm && (
+        <div className="p-4 bg-surface border border-border rounded-lg space-y-3">
+          <Input label="Naam" value={name} onChange={(e) => setName(e.target.value)} placeholder="bijv. Persoonlijk, Sport, School" autoFocus />
+          <div>
+            <label className="text-xs font-medium text-ink-muted block mb-1.5">Kleur</label>
+            <div className="flex gap-2 flex-wrap">
+              {CALENDAR_COLORS.map((c) => (
+                <button key={c} onClick={() => setColor(c)}
+                  className={clsx("w-6 h-6 rounded-full transition-all", color === c && "ring-2 ring-offset-2 ring-offset-surface")}
+                  style={{ backgroundColor: c, ...(color === c ? { ringColor: c } as any : {}) }} />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={isSchedule} onChange={(e) => setIsSchedule(e.target.checked)}
+                className="rounded" />
+              <span className="text-sm text-ink">Dit is een rooster / lesrooster</span>
+            </label>
+          </div>
+          {isSchedule && (
+            <Input label="iCal URL (optioneel)" value={icalUrl} onChange={(e) => setIcalUrl(e.target.value)}
+              placeholder="https://..." />
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)}>Annuleren</Button>
+            <Button variant="primary" onClick={handleCreate} disabled={!name.trim() || saving}>
+              {saving ? "Aanmaken…" : "Aanmaken"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -135,6 +236,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        {/* Calendars */}
+        <CalendarsSection />
 
         {/* iCal sync */}
         <section>
