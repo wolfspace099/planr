@@ -448,7 +448,7 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
       {schedule.length > 0 && (
         <>
           <div className="px-4 pt-3 pb-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Rooster</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Rrrrooster</p>
           </div>
           <div className="py-1">
             {schedule.map((cal) => (
@@ -721,7 +721,7 @@ export default function CalendarPage() {
       ...(weekHomework ?? []).map((hw: any) => ({
         id: `week-focus-homework-${hw._id}`,
         title: hw.title,
-        subtitle: `${format(new Date(hw.dueDate), "EEE d MMM")} · ${hw.subject}`,
+        subtitle: `${format(new Date(hw.dueDate), "EEE d MMM")} · ${Roosterhw.subject}`,
         tone: "homework" as const,
       })),
     ];
