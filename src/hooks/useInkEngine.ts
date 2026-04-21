@@ -98,15 +98,14 @@ function getSvgPathFromStroke(points: number[][]): string {
 function renderStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
   if (stroke.points.length < 2) return;
 
-  // 1. Check if stroke.points exists before mapping
-  const inputPoints = (stroke.points || []).map(
-    (p) => [p.x, p.y, p.pressure]
+  // Define the type to match exactly what the library expects
+  const inputPoints = stroke.points.map(
+    (p): [number, number, number | undefined] => [p.x, p.y, p.pressure]
   );
 
-  // 2. Add a "guard clause" before calling getStroke
-  if (!Array.isArray(inputPoints) || inputPoints.length === 0) {
-    return null; // Or continue to the next stroke
-  }
+  // If you are getting the 'e.filter is not a function' error, 
+  // add this safety check immediately after:
+  if (!inputPoints || inputPoints.length === 0) return null;
 
   const outlinePoints = getStroke(inputPoints, getFreehandOptions(stroke.tool, stroke.size));
 
