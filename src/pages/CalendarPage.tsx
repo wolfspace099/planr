@@ -583,10 +583,19 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const weekKey = format(weekStart, "yyyy-ww");
-    const syncKey = `${settings?.externalAppCode ?? ""}:${weekKey}`;
-    if (settings?.externalAppCode && lastSyncKey !== syncKey) {
+    const syncSeed =
+      settings?.externalAppCode ||
+      (settings?.zermeloSchool && settings?.zermeloAccessToken
+        ? `${settings.zermeloSchool}:${settings.zermeloTokenUpdatedAt ?? ""}`
+        : "");
+    const syncKey = `${syncSeed}:${weekKey}`;
+    if (syncSeed && lastSyncKey !== syncKey) {
       setLastSyncKey(syncKey);
-      syncCalendar({ externalAppCode: settings.externalAppCode, weekStartMs: weekStart.getTime() }).catch(() => {});
+      syncCalendar({
+        externalAppCode: settings?.externalAppCode,
+        zermeloSchool: settings?.zermeloSchool,
+        weekStartMs: weekStart.getTime(),
+      }).catch(() => {});
     }
   }, [settings, lastSyncKey, syncCalendar, weekStart]);
 

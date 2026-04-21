@@ -21,6 +21,10 @@ export const upsert = mutation({
   args: {
     icalUrl: v.optional(v.string()),
     externalAppCode: v.optional(v.string()),
+    zermeloSchool: v.optional(v.string()),
+    zermeloUsername: v.optional(v.string()),
+    zermeloAccessToken: v.optional(v.string()),
+    zermeloTokenUpdatedAt: v.optional(v.number()),
     displayName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

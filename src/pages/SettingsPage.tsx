@@ -111,6 +111,9 @@ export default function SettingsPage() {
   const { t, lang, setLang } = useLang();
 
   const [externalAppCode, setExternalAppCode] = useState("");
+  const [zermeloSchool, setZermeloSchool] = useState("");
+  const [zermeloUsername, setZermeloUsername] = useState("");
+  const [zermeloPassword, setZermeloPassword] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -136,9 +139,15 @@ export default function SettingsPage() {
   };
 
   const currentCode = settings?.externalAppCode ?? "";
+  const currentSchool = settings?.zermeloSchool ?? "";
+  const currentUsername = settings?.zermeloUsername ?? "";
 
   const handleSaveUrl = async () => {
-    await upsert({ externalAppCode: externalAppCode || currentCode });
+    await upsert({
+      externalAppCode: externalAppCode || currentCode,
+      zermeloSchool: zermeloSchool || currentSchool,
+      zermeloUsername: zermeloUsername || currentUsername,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -153,8 +162,35 @@ export default function SettingsPage() {
       const result = await syncCalendar({ externalAppCode: code });
       setSyncResult(
         lang === "nl"
-          ? `${result.count} lessen gesynchroniseerd (week ${result.week}).`
-          : `Synced ${result.count} lessons (week ${result.week}).`
+          ? `${result.count} lessen gesynchroniseerd (week ${result.week}, ±4 weken).`
+          : `Synced ${result.count} lessons (week ${result.week}, +/-4 weeks).`
+      );
+    } catch (e: any) {
+      setSyncError(e.message ?? "Sync mislukt");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleLoginSync = async () => {
+    const school = zermeloSchool || currentSchool;
+    const username = zermeloUsername || currentUsername;
+    const password = zermeloPassword;
+    if (!school || !username || !password) return;
+    setSyncing(true);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const result = await syncCalendar({
+        zermeloSchool: school,
+        zermeloUsername: username,
+        zermeloPassword: password,
+      });
+      setZermeloPassword("");
+      setSyncResult(
+        lang === "nl"
+          ? `${result.count} lessen gesynchroniseerd (week ${result.week}, ±4 weken).`
+          : `Synced ${result.count} lessons (week ${result.week}, +/-4 weeks).`
       );
     } catch (e: any) {
       setSyncError(e.message ?? "Sync mislukt");
@@ -251,13 +287,32 @@ export default function SettingsPage() {
           </p>
 
           <div className="p-4 bg-surface border border-border rounded-lg space-y-3">
+            <Input
+              label="School"
+              value={zermeloSchool || currentSchool}
+              onChange={(e) => setZermeloSchool(e.target.value)}
+              placeholder="bijv. tabor"
+            />
+            <Input
+              label="Zermelo gebruikersnaam"
+              value={zermeloUsername || currentUsername}
+              onChange={(e) => setZermeloUsername(e.target.value)}
+              placeholder="bijv. leerlingnummer"
+            />
+            <Input
+              label="Zermelo wachtwoord"
+              type="password"
+              value={zermeloPassword}
+              onChange={(e) => setZermeloPassword(e.target.value)}
+              placeholder="Wordt niet opgeslagen"
+            />
             <div className="flex items-center gap-2">
               <Link2 size={14} className="text-ink-muted flex-shrink-0" />
               <Input
                 className="flex-1"
                 value={externalAppCode || currentCode}
                 onChange={(e) => setExternalAppCode(e.target.value)}
-                placeholder="schoolnaam:extern_app_code"
+                placeholder="schoolnaam:koppelcode"
               />
             </div>
 
@@ -281,6 +336,14 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={handleSaveUrl}>
                 {saved ? t.saved : t.saveUrl}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleLoginSync}
+                disabled={syncing || !(zermeloPassword && (zermeloSchool || currentSchool) && (zermeloUsername || currentUsername))}
+              >
+                {syncing ? "Inloggenâ€¦" : "Inloggen + sync"}
               </Button>
               <Button
                 size="sm"

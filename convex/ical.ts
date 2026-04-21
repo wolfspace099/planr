@@ -23,6 +23,18 @@ async function requireUserId(ctx: any): Promise<string> {
   return identity.subject as string;
 }
 
+async function getCurrentSettings(ctx: any): Promise<any | null> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Not authenticated");
+  return await ctx.runQuery(api.userSettings.get, {});
+}
+
+function addWeeks(date: Date, weeks: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + weeks * 7);
+  return d;
+}
+
 function toIsoWeekString(sourceDate: Date): string {
   const date = new Date(Date.UTC(sourceDate.getFullYear(), sourceDate.getMonth(), sourceDate.getDate()));
   const day = date.getUTCDay() || 7;
@@ -137,6 +149,74 @@ function parseExternalAppCode(input: string): ParsedCode {
   );
 }
 
+function looksLikeAccessToken(value: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  if (v.includes(".")) return true;
+  return v.length >= 24;
+}
+
+async function exchangeKoppelCodeForToken(school: string, koppelCode: string): Promise<string | null> {
+  const endpoint = `https://${school}.zportal.nl/api/v3/oauth/token`;
+  const body = new URLSearchParams({
+    code: koppelCode,
+    client_id: "ZermeloPortal",
+    client_secret: "42",
+    grant_type: "authorization_code",
+    rememberMe: "false",
+  });
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  if (!response.ok) return null;
+
+  const payload = await response.json();
+  const token =
+    normalizeString((payload as Record<string, unknown>).access_token) ||
+    normalizeString((payload as Record<string, unknown>).token);
+  return token || null;
+}
+
+async function exchangeLoginForToken(
+  school: string,
+  username: string,
+  password: string,
+): Promise<string | null> {
+  const authEndpoint = `https://${school}.zportal.nl/api/v3/oauth`;
+  const authBody = new URLSearchParams({
+    username,
+    password,
+    client_id: "OAuthPage",
+    redirect_uri: "/main/",
+    scope: "",
+    state: "planr",
+    response_type: "code",
+    tenant: school,
+  });
+
+  const authResponse = await fetch(authEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: authBody.toString(),
+  });
+
+  const authText = await authResponse.text();
+  const fromText = authText.match(/(?:\?|&)code=([^&]+)/i)?.[1] ?? "";
+  const fromUrl = new URL(authResponse.url).searchParams.get("code") ?? "";
+  const code = decodeURIComponent(fromText || fromUrl);
+  if (!code) return null;
+
+  return await exchangeKoppelCodeForToken(school, code);
+}
+
 function unwrapLiveScheduleData(payload: unknown): Array<Record<string, unknown>> {
   if (!payload || typeof payload !== "object") return [];
   const root = payload as Record<string, unknown>;
@@ -216,6 +296,9 @@ function mapAppointmentToLesson(item: Record<string, unknown>): LiveScheduleAppo
 export const syncCalendar = action({
   args: {
     externalAppCode: v.optional(v.string()),
+    zermeloSchool: v.optional(v.string()),
+    zermeloUsername: v.optional(v.string()),
+    zermeloPassword: v.optional(v.string()),
     icalUrl: v.optional(v.string()),
     userId: v.optional(v.string()),
     weekStartMs: v.optional(v.number()),
@@ -223,50 +306,87 @@ export const syncCalendar = action({
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const code = args.externalAppCode ?? args.icalUrl;
-    if (!code) {
-      throw new Error("Missing external application code.");
-    }
-    const parsed = parseExternalAppCode(code);
-    const week = toIsoWeekString(new Date(args.weekStartMs ?? Date.now()));
+    const settings = await getCurrentSettings(ctx);
+    const parsed = code ? parseExternalAppCode(code) : null;
+    const school = normalizeString(args.zermeloSchool) || normalizeString(settings?.zermeloSchool) || parsed?.school;
+    if (!school) throw new Error("Missing school name.");
 
-    const buildEndpoint = (withAccessTokenQuery: boolean) => {
-      const endpoint = new URL(`https://${parsed.school}.zportal.nl/api/v3/liveschedule`);
-      endpoint.searchParams.set("week", week);
-      endpoint.searchParams.set(parsed.student === "~me" ? "student" : "teacher", parsed.student);
-      if (withAccessTokenQuery) {
-        endpoint.searchParams.set("access_token", parsed.accessToken);
+    const persistedToken = normalizeString(settings?.zermeloAccessToken);
+    let activeToken = persistedToken || normalizeString(parsed?.accessToken);
+
+    const inputUsername = normalizeString(args.zermeloUsername) || normalizeString(settings?.zermeloUsername);
+    const inputPassword = normalizeString(args.zermeloPassword);
+    if (inputUsername && inputPassword) {
+      const loginToken = await exchangeLoginForToken(school, inputUsername, inputPassword);
+      if (!loginToken) throw new Error("Zermelo login failed. Check username/password.");
+      activeToken = loginToken;
+    }
+
+    const parsedStudent = parsed?.student ?? "~me";
+    const weekCenter = new Date(args.weekStartMs ?? Date.now());
+    const weeksToFetch = Array.from({ length: 9 }, (_, i) => toIsoWeekString(addWeeks(weekCenter, i - 4)));
+
+    const fetchWeekPayload = async (week: string) => {
+      const buildEndpoint = () => {
+        const endpoint = new URL(`https://${school}.zportal.nl/api/v3/liveschedule`);
+        endpoint.searchParams.set("week", week);
+        endpoint.searchParams.set(parsedStudent === "~me" ? "student" : "teacher", parsedStudent);
+        return endpoint;
+      };
+
+      if (!activeToken) throw new Error("No token available. Login or koppelcode required.");
+      let response = await fetch(buildEndpoint().toString(), {
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        const queryEndpoint = buildEndpoint();
+        queryEndpoint.searchParams.set("access_token", activeToken);
+        response = await fetch(queryEndpoint.toString());
       }
-      return endpoint;
+
+      if (response.status === 401 && parsed?.accessToken && !looksLikeAccessToken(parsed.accessToken)) {
+        const exchanged = await exchangeKoppelCodeForToken(school, parsed.accessToken);
+        if (exchanged) {
+          activeToken = exchanged;
+          response = await fetch(buildEndpoint().toString(), {
+            headers: {
+              Authorization: `Bearer ${activeToken}`,
+            },
+          });
+          if (response.status === 401) {
+            const queryEndpoint = buildEndpoint();
+            queryEndpoint.searchParams.set("access_token", activeToken);
+            response = await fetch(queryEndpoint.toString());
+          }
+        }
+      }
+
+      if (!response.ok) {
+        const details = (await response.text()).slice(0, 220);
+        throw new Error(
+          `Failed to fetch Zermelo liveschedule (${response.status}) for week ${week}. ${details || "Authorization failed."}`,
+        );
+      }
+
+      return await response.json();
     };
 
-    let response = await fetch(buildEndpoint(false).toString(), {
-      headers: {
-        Authorization: `Bearer ${parsed.accessToken}`,
-      },
-    });
-
-    // Some portals expect token in query instead of Authorization header.
-    if (response.status === 401) {
-      response = await fetch(buildEndpoint(true).toString());
+    const allLessons: LiveScheduleAppointment[] = [];
+    for (const week of weeksToFetch) {
+      const payload = await fetchWeekPayload(week);
+      const lessonsForWeek = unwrapLiveScheduleData(payload)
+        .map(mapAppointmentToLesson)
+        .filter((lesson): lesson is LiveScheduleAppointment => lesson !== null);
+      allLessons.push(...lessonsForWeek);
     }
-
-    if (!response.ok) {
-      const details = (await response.text()).slice(0, 220);
-      throw new Error(
-        `Failed to fetch Zermelo liveschedule (${response.status}). ${details || "Authorization failed."}`,
-      );
-    }
-
-    const payload = await response.json();
-    const appointments = unwrapLiveScheduleData(payload);
-    const lessons = appointments
-      .map(mapAppointmentToLesson)
-      .filter((lesson): lesson is LiveScheduleAppointment => lesson !== null);
 
     await ctx.runMutation(internal.lessons.deleteAllForUser, { userId });
 
     let upserted = 0;
-    for (const lesson of lessons) {
+    for (const lesson of allLessons) {
       await ctx.runMutation(internal.lessons.upsert, {
         userId,
         ...lesson,
@@ -275,10 +395,18 @@ export const syncCalendar = action({
     }
 
     await ctx.runMutation(api.userSettings.markSynced);
+    if (activeToken && activeToken !== persistedToken) {
+      await ctx.runMutation(api.userSettings.upsert, {
+        zermeloSchool: school,
+        zermeloUsername: inputUsername || undefined,
+        zermeloAccessToken: activeToken,
+        zermeloTokenUpdatedAt: Date.now(),
+      });
+    }
 
     return {
       count: upserted,
-      week,
+      week: toIsoWeekString(weekCenter),
     };
   },
 });
