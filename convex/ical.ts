@@ -115,6 +115,15 @@ function parseExternalAppCode(input: string): ParsedCode {
     }
   }
 
+  // Accept compact format: "school:token:student" (or teacher code).
+  const compactWithUserMatch = raw.match(/^([a-z0-9-]+)\s*[:|]\s*([^:|]+)\s*[:|]\s*([^:|]+)$/i);
+  if (compactWithUserMatch) {
+    const school = compactWithUserMatch[1].trim();
+    const accessToken = compactWithUserMatch[2].trim();
+    const student = compactWithUserMatch[3].trim() || "~me";
+    return { school, accessToken, student };
+  }
+
   // Accept compact format: "school:token" or "school|token".
   const compactMatch = raw.match(/^([a-z0-9-]+)\s*[:|]\s*(.+)$/i);
   if (compactMatch) {
@@ -220,18 +229,32 @@ export const syncCalendar = action({
     const parsed = parseExternalAppCode(code);
     const week = toIsoWeekString(new Date(args.weekStartMs ?? Date.now()));
 
-    const endpoint = new URL(`https://${parsed.school}.zportal.nl/api/v3/liveschedule`);
-    endpoint.searchParams.set("week", week);
-    endpoint.searchParams.set(parsed.student === "~me" ? "student" : "teacher", parsed.student);
+    const buildEndpoint = (withAccessTokenQuery: boolean) => {
+      const endpoint = new URL(`https://${parsed.school}.zportal.nl/api/v3/liveschedule`);
+      endpoint.searchParams.set("week", week);
+      endpoint.searchParams.set(parsed.student === "~me" ? "student" : "teacher", parsed.student);
+      if (withAccessTokenQuery) {
+        endpoint.searchParams.set("access_token", parsed.accessToken);
+      }
+      return endpoint;
+    };
 
-    const response = await fetch(endpoint.toString(), {
+    let response = await fetch(buildEndpoint(false).toString(), {
       headers: {
         Authorization: `Bearer ${parsed.accessToken}`,
       },
     });
 
+    // Some portals expect token in query instead of Authorization header.
+    if (response.status === 401) {
+      response = await fetch(buildEndpoint(true).toString());
+    }
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch Zermelo liveschedule (${response.status})`);
+      const details = (await response.text()).slice(0, 220);
+      throw new Error(
+        `Failed to fetch Zermelo liveschedule (${response.status}). ${details || "Authorization failed."}`,
+      );
     }
 
     const payload = await response.json();
