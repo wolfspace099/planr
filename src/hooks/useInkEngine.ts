@@ -98,14 +98,18 @@ function getSvgPathFromStroke(points: number[][]): string {
 function renderStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
   if (stroke.points.length < 2) return;
 
-  const inputPoints = stroke.points.map(
-    (p): [number, number, number] => [p.x, p.y, p.pressure]
+  // 1. Check if stroke.points exists before mapping
+  const inputPoints = (stroke.points || []).map(
+    (p) => [p.x, p.y, p.pressure]
   );
 
-  const outlinePoints = getStroke(
-    inputPoints, 
-    getFreehandOptions(stroke.tool, stroke.size)
-  );
+  // 2. Add a "guard clause" before calling getStroke
+  if (!Array.isArray(inputPoints) || inputPoints.length === 0) {
+    return null; // Or continue to the next stroke
+  }
+
+  const outlinePoints = getStroke(inputPoints, getFreehandOptions(stroke.tool, stroke.size));
+
   const pathStr = getSvgPathFromStroke(outlinePoints);
   const path = new Path2D(pathStr);
 
