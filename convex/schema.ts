@@ -12,6 +12,8 @@ export default defineSchema({
     zermeloAccessToken: v.optional(v.string()),
     zermeloTokenUpdatedAt: v.optional(v.number()),
     lastScheduleSync: v.optional(v.number()),
+    syncLockId: v.optional(v.string()),
+    syncLockUntil: v.optional(v.number()),
     displayName: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 

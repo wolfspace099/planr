@@ -304,6 +304,20 @@ export const syncCalendar = action({
     weekStartMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const lockId = `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const lock = await ctx.runMutation(api.userSettings.acquireSyncLock, {
+      lockId,
+      ttlMs: 180_000,
+    });
+    if (!lock.acquired) {
+      return {
+        count: 0,
+        week: toIsoWeekString(new Date(args.weekStartMs ?? Date.now())),
+        skipped: true,
+      };
+    }
+
+    try {
     const userId = await requireUserId(ctx);
     const code = args.externalAppCode ?? args.icalUrl;
     const settings = await getCurrentSettings(ctx);
@@ -408,5 +422,8 @@ export const syncCalendar = action({
       count: upserted,
       week: toIsoWeekString(weekCenter),
     };
+    } finally {
+      await ctx.runMutation(api.userSettings.releaseSyncLock, { lockId });
+    }
   },
 });
