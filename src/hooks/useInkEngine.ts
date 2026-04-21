@@ -108,7 +108,7 @@ function renderStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
   if (!Array.isArray(inputPoints) || inputPoints.length === 0) {
     return null; 
   }
-
+  console.log("Passing to getStroke:", JSON.stringify(inputPoints));
   // 3. Only now is it safe to call the library
   const outlinePoints = getStroke(
     inputPoints, 
