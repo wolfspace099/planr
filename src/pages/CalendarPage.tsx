@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { studyApi } from "../studyApi";
 import {
@@ -569,7 +568,6 @@ function StudyPlannerBoard({
 
 // ─── Main Calendar Page ─────────────────────────────────────────────────────
 export default function CalendarPage() {
-  const { user } = useUser();
   const { t } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -580,15 +578,17 @@ export default function CalendarPage() {
 
   const settings     = useQuery(api.userSettings.get);
   const syncCalendar = useAction(api.ical.syncCalendar);
-  const [autoSynced, setAutoSynced] = useState(false);
+  const [lastSyncKey, setLastSyncKey] = useState<string | null>(null);
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number } | null>(null);
 
   useEffect(() => {
-    if (!autoSynced && settings?.icalUrl && user?.id) {
-      setAutoSynced(true);
-      syncCalendar({ userId: user.id, icalUrl: settings.icalUrl }).catch(() => {});
+    const weekKey = format(weekStart, "yyyy-ww");
+    const syncKey = `${settings?.externalAppCode ?? ""}:${weekKey}`;
+    if (settings?.externalAppCode && lastSyncKey !== syncKey) {
+      setLastSyncKey(syncKey);
+      syncCalendar({ externalAppCode: settings.externalAppCode, weekStartMs: weekStart.getTime() }).catch(() => {});
     }
-  }, [settings, user, autoSynced, syncCalendar]);
+  }, [settings, lastSyncKey, syncCalendar, weekStart]);
 
   useEffect(() => {
     if (!scrollRef.current) return;

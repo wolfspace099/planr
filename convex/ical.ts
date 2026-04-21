@@ -1,150 +1,255 @@
-import { action, internalMutation } from "./_generated/server";
+import { action } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { v } from "convex/values";
 
-function extractField(text: string, field: string): string | undefined {
-  const regex = new RegExp(`^${field}(?:;[^:]*)?:(.+)$`, "m");
-  const match = text.match(regex);
-  if (!match) return undefined;
-  let value = match[1].trim();
-  value = value.replace(/\n[ \t]/g, "");
-  return value;
-}
-
-function decodeIcalText(text: string): string {
-  return text
-    .replace(/\\n/g, "\n")
-    .replace(/\\,/g, ",")
-    .replace(/\\;/g, ";")
-    .replace(/\\\\/g, "\\");
-}
-
-const SUBJECT_MAP: Record<string, string> = {
-  wis: "Wiskunde", wi: "Wiskunde",
-  ned: "Nederlands", nl: "Nederlands", netl: "Nederlands",
-  en: "Engels", eng: "Engels", eng2: "Engels",
-  du: "Duits", dui: "Duits", dutl: "Duits",
-  fr: "Frans", fra: "Frans",
-  bi: "Biologie", bio: "Biologie", biol: "Biologie",
-  na: "Natuurkunde", nat: "Natuurkunde",
-  sk: "Scheikunde", sch: "Scheikunde", ci: "Scheikunde",
-  ak: "Aardrijkskunde", aard: "Aardrijkskunde",
-  gs: "Geschiedenis", ges: "Geschiedenis",
-  ec: "Economie", eco: "Economie",
-  m: "Maatschappijleer", ma: "Maatschappijleer",
-  lo: "Lichamelijke Opvoeding", pe: "Lichamelijke Opvoeding", sport: "Lichamelijke Opvoeding",
-  ckv: "Ckv", mu: "Muziek", tek: "Tekenen", bk: "Beeldende Kunst",
-  inf: "Informatica", in: "Informatica", aco: "Aco", ac: "Aco",
-  net: "Netwerken", sc: "Security", sv: "Systeembeheer", sys: "Systeembeheer",
-  rs: "Religie", fil: "Filosofie", lat: "Latijn", gri: "Grieks", nask: "Nask",
-  lob: "Lob", civ: "Civics", civics: "Civics",
+type ParsedCode = {
+  school: string;
+  accessToken: string;
+  student: string;
 };
 
-const NON_ACADEMIC_KEYWORDS = ["theater", "thea", "s", "drama"];
+type LiveScheduleAppointment = {
+  icalUid: string;
+  subject: string;
+  startTime: number;
+  endTime: number;
+  location?: string;
+  isEvent: boolean;
+};
 
-function extractZermeloSubject(raw: string): { subject: string; location: string | undefined; isEvent: boolean } {
-  let s = decodeIcalText(raw).trim();
+async function requireUserId(ctx: any): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Not authenticated");
+  return identity.subject as string;
+}
 
-  // 1. Strip leading time: "09:20 "
-  s = s.replace(/^\d{1,2}:\d{2}\s*/, "").trim();
+function toIsoWeekString(sourceDate: Date): string {
+  const date = new Date(Date.UTC(sourceDate.getFullYear(), sourceDate.getMonth(), sourceDate.getDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
+  return `${date.getUTCFullYear()}${String(week).padStart(2, "0")}`;
+}
 
-  // 2. Strip all flag tokens: [>], [!], [o], [x], etc.
-  s = s.replace(/(\[[^\]]*\]\s*)+/g, "").trim();
+function normalizeTimestamp(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value > 1_000_000_000_000) return value;
+    if (value > 1_000_000_000) return value * 1000;
+    return null;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) return normalizeTimestamp(numeric);
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return null;
+}
 
-  // 3. Extract room code — first token that contains a digit (w107, wsh1, A.101, lok3)
-  let location: string | undefined;
-  const tokens = s.split(/\s+/);
-  const roomIdx = tokens.findIndex((t) => /\d/.test(t));
-  if (roomIdx !== -1) {
-    location = tokens[roomIdx];
-    tokens.splice(roomIdx, 1);
+function normalizeString(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function toStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (entry == null) return "";
+        if (typeof entry === "string") return entry.trim();
+        if (typeof entry === "number" || typeof entry === "boolean") return String(entry);
+        if (typeof entry === "object") {
+          const maybeObj = entry as Record<string, unknown>;
+          const text = maybeObj.name ?? maybeObj.label ?? maybeObj.code ?? maybeObj.value;
+          return normalizeString(text);
+        }
+        return "";
+      })
+      .filter(Boolean);
+  }
+  const single = normalizeString(value);
+  return single ? [single] : [];
+}
+
+function parseExternalAppCode(input: string): ParsedCode {
+  const raw = input.trim();
+  if (!raw) {
+    throw new Error("External application code is required.");
   }
 
-  // 4. First remaining token is the subject abbreviation; last token is class.lesson (ignored)
-  const code = tokens[0]?.toLowerCase() ?? "";
-  let subject = code;
-  let isEvent = false;
-  
-  if (!code) {
-    subject = decodeIcalText(raw);
-  } else {
-    // Check if it's a non-academic event
-    if (NON_ACADEMIC_KEYWORDS.includes(code)) {
-      isEvent = true;
-      subject = code.charAt(0).toUpperCase() + code.slice(1);
-    } else {
-      const mapped = SUBJECT_MAP[code];
-      if (mapped) {
-        subject = mapped;
-      } else {
-        // For unmapped codes, capitalize first letter only
-        subject = code.charAt(0).toUpperCase() + code.slice(1);
+  // Accept JSON payloads as well as compact strings.
+  if (raw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const school = normalizeString(parsed.school ?? parsed.schoolName ?? parsed.portal);
+      const accessToken = normalizeString(parsed.accessToken ?? parsed.token ?? parsed.externalAppCode);
+      const student = normalizeString(parsed.student ?? parsed.teacher ?? "~me") || "~me";
+      if (school && accessToken) {
+        return { school, accessToken, student };
       }
+    } catch {
+      // Fall through to compact parsing.
     }
   }
 
-  return { subject, location, isEvent };
+  // Accept URLs that contain token params.
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      const school = url.hostname.split(".")[0] ?? "";
+      const accessToken =
+        url.searchParams.get("access_token") ??
+        url.searchParams.get("token") ??
+        url.searchParams.get("externalAppCode") ??
+        "";
+      const student = url.searchParams.get("student") ?? url.searchParams.get("teacher") ?? "~me";
+      if (school && accessToken) {
+        return { school, accessToken, student };
+      }
+    } catch {
+      // Fall through to compact parsing.
+    }
+  }
+
+  // Accept compact format: "school:token" or "school|token".
+  const compactMatch = raw.match(/^([a-z0-9-]+)\s*[:|]\s*(.+)$/i);
+  if (compactMatch) {
+    const school = compactMatch[1].trim();
+    const accessToken = compactMatch[2].trim();
+    return { school, accessToken, student: "~me" };
+  }
+
+  throw new Error(
+    "Invalid external application code format. Use 'school:token' (for example: myschool:abc123).",
+  );
 }
 
-function parseIcalDate(dtStr: string): number {
-  const clean = dtStr.replace(/^(?:TZID=[^:]+:)?/, "").trim();
-  if (clean.length === 8) {
-    const y = clean.slice(0, 4), m = clean.slice(4, 6), d = clean.slice(6, 8);
-    return new Date(`${y}-${m}-${d}T00:00:00`).getTime();
+function unwrapLiveScheduleData(payload: unknown): Array<Record<string, unknown>> {
+  if (!payload || typeof payload !== "object") return [];
+  const root = payload as Record<string, unknown>;
+  const data =
+    (root.response as Record<string, unknown> | undefined)?.data ??
+    root.data ??
+    [];
+
+  if (!Array.isArray(data)) return [];
+
+  const flattened: Array<Record<string, unknown>> = [];
+  for (const item of data) {
+    if (!item || typeof item !== "object") continue;
+    const obj = item as Record<string, unknown>;
+
+    if (Array.isArray(obj.appointments)) {
+      for (const appt of obj.appointments) {
+        if (appt && typeof appt === "object") flattened.push(appt as Record<string, unknown>);
+      }
+      continue;
+    }
+
+    flattened.push(obj);
   }
-  const y = clean.slice(0, 4), mo = clean.slice(4, 6), d = clean.slice(6, 8);
-  const h = clean.slice(9, 11), mi = clean.slice(11, 13), s = clean.slice(13, 15);
-  if (clean.endsWith("Z")) return Date.UTC(+y, +mo - 1, +d, +h, +mi, +s);
-  return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}`).getTime();
+
+  return flattened;
 }
 
-function parseIcal(icalText: string): Array<{
-  icalUid: string; subject: string; startTime: number; endTime: number; location?: string; isEvent: boolean;
-}> {
-  const normalised = icalText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "");
-  const eventBlocks = normalised.split("BEGIN:VEVENT").slice(1);
-  const results = [];
-  for (const block of eventBlocks) {
-    const endIdx = block.indexOf("END:VEVENT");
-    const text = endIdx >= 0 ? block.slice(0, endIdx) : block;
-    const uid = extractField(text, "UID");
-    const summary = extractField(text, "SUMMARY");
-    const dtstart = extractField(text, "DTSTART");
-    const dtend = extractField(text, "DTEND");
-    const locationField = extractField(text, "LOCATION");
-    if (!uid || !summary || !dtstart || !dtend) continue;
-    // Skip lessons marked as cancelled with [x]
-    if (/\[x\]/i.test(summary)) continue;
-    const { subject, location: roomFromSummary, isEvent } = extractZermeloSubject(summary);
-    results.push({
-      icalUid: uid,
-      subject,
-      startTime: parseIcalDate(dtstart),
-      endTime: parseIcalDate(dtend),
-      location: locationField ? decodeIcalText(locationField) : roomFromSummary,
-      isEvent,
-    });
-  }
-  return results;
+function mapAppointmentToLesson(item: Record<string, unknown>): LiveScheduleAppointment | null {
+  const status = typeof item.status === "number" ? item.status : undefined;
+  const cancelled = item.cancelled === true || status === 4007;
+  if (cancelled) return null;
+
+  const startTime =
+    normalizeTimestamp(item.startTime) ??
+    normalizeTimestamp(item.start) ??
+    normalizeTimestamp(item.begin);
+  const endTime =
+    normalizeTimestamp(item.endTime) ??
+    normalizeTimestamp(item.end) ??
+    normalizeTimestamp(item.finish);
+  if (!startTime || !endTime || endTime <= startTime) return null;
+
+  const subjects = toStringList(item.subjects);
+  const locations = toStringList(item.locations);
+  const teachers = toStringList(item.teachers);
+
+  const subject =
+    normalizeString(item.subject) ||
+    subjects.join(" /") ||
+    normalizeString(item.title) ||
+    normalizeString(item.description) ||
+    "Lesson";
+
+  const location = normalizeString(item.location) || locations.join(", ") || undefined;
+  const teacherLabel = teachers.length > 0 ? ` (${teachers.join(", ")})` : "";
+
+  const idBits = [
+    normalizeString(item.id),
+    normalizeString(item.appointmentInstance),
+    String(startTime),
+    String(endTime),
+    subject,
+    location ?? "",
+  ].filter(Boolean);
+
+  return {
+    icalUid: idBits.join("|"),
+    subject: `${subject}${teacherLabel}`,
+    startTime,
+    endTime,
+    location,
+    isEvent: false,
+  };
 }
 
 export const syncCalendar = action({
-  args: { userId: v.string(), icalUrl: v.string() },
-  handler: async (ctx, { userId, icalUrl }) => {
-    const response = await fetch(icalUrl);
-    if (!response.ok) throw new Error(`Failed to fetch iCal: ${response.status}`);
-    const icalText = await response.text();
-    const events = parseIcal(icalText);
+  args: {
+    externalAppCode: v.string(),
+    weekStartMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const parsed = parseExternalAppCode(args.externalAppCode);
+    const week = toIsoWeekString(new Date(args.weekStartMs ?? Date.now()));
 
-    // Delete all existing lessons for this user before syncing new ones
+    const endpoint = new URL(`https://${parsed.school}.zportal.nl/api/v3/liveschedule`);
+    endpoint.searchParams.set("week", week);
+    endpoint.searchParams.set(parsed.student === "~me" ? "student" : "teacher", parsed.student);
+
+    const response = await fetch(endpoint.toString(), {
+      headers: {
+        Authorization: `Bearer ${parsed.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Zermelo liveschedule (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const appointments = unwrapLiveScheduleData(payload);
+    const lessons = appointments
+      .map(mapAppointmentToLesson)
+      .filter((lesson): lesson is LiveScheduleAppointment => lesson !== null);
+
     await ctx.runMutation(internal.lessons.deleteAllForUser, { userId });
 
     let upserted = 0;
-    for (const event of events) {
-      await ctx.runMutation(internal.lessons.upsert, { userId, ...event });
-      upserted++;
+    for (const lesson of lessons) {
+      await ctx.runMutation(internal.lessons.upsert, {
+        userId,
+        ...lesson,
+      });
+      upserted += 1;
     }
+
     await ctx.runMutation(api.userSettings.markSynced);
-    return { count: upserted };
+
+    return {
+      count: upserted,
+      week,
+    };
   },
 });

@@ -24,14 +24,13 @@ function CalendarsSection() {
   const [name, setName] = useState("");
   const [color, setColor] = useState(CALENDAR_COLORS[0]);
   const [isSchedule, setIsSchedule] = useState(false);
-  const [icalUrl, setIcalUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     setSaving(true);
-    await createCal({ name, color, isSchedule, icalUrl: icalUrl || undefined, order: calendars.length });
-    setName(""); setColor(CALENDAR_COLORS[0]); setIsSchedule(false); setIcalUrl("");
+    await createCal({ name, color, isSchedule, order: calendars.length });
+    setName(""); setColor(CALENDAR_COLORS[0]); setIsSchedule(false);
     setShowForm(false); setSaving(false);
   };
 
@@ -53,7 +52,6 @@ function CalendarsSection() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink truncate">{cal.name}</p>
                 {cal.isSchedule && <p className="text-xs text-ink-muted">Rooster</p>}
-                {cal.icalUrl && <p className="text-xs text-ink-muted truncate">{cal.icalUrl}</p>}
               </div>
               <button onClick={() => removeCal({ id: cal._id })}
                 className="p-1.5 text-ink-muted hover:text-danger transition-colors flex-shrink-0">
@@ -93,10 +91,6 @@ function CalendarsSection() {
               <span className="text-sm text-ink">Dit is een rooster / lesrooster</span>
             </label>
           </div>
-          {isSchedule && (
-            <Input label="iCal URL (optioneel)" value={icalUrl} onChange={(e) => setIcalUrl(e.target.value)}
-              placeholder="https://..." />
-          )}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setShowForm(false)}>Annuleren</Button>
             <Button variant="primary" onClick={handleCreate} disabled={!name.trim() || saving}>
@@ -116,7 +110,7 @@ export default function SettingsPage() {
   const syncCalendar = useAction(api.ical.syncCalendar);
   const { t, lang, setLang } = useLang();
 
-  const [icalUrl, setIcalUrl] = useState("");
+  const [externalAppCode, setExternalAppCode] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -141,23 +135,27 @@ export default function SettingsPage() {
     localStorage.setItem("theme", newTheme);
   };
 
-  const currentUrl = settings?.icalUrl ?? "";
+  const currentCode = settings?.externalAppCode ?? "";
 
   const handleSaveUrl = async () => {
-    await upsert({ icalUrl: icalUrl || currentUrl });
+    await upsert({ externalAppCode: externalAppCode || currentCode });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleSync = async () => {
-    const url = icalUrl || currentUrl;
-    if (!url) return;
+    const code = externalAppCode || currentCode;
+    if (!code) return;
     setSyncing(true);
     setSyncResult(null);
     setSyncError(null);
     try {
-      const result = await syncCalendar({ userId: user!.id, icalUrl: url });
-      setSyncResult(lang === "nl" ? `${result.count} lessen gesynchroniseerd.` : `Synced ${result.count} lessons successfully.`);
+      const result = await syncCalendar({ externalAppCode: code });
+      setSyncResult(
+        lang === "nl"
+          ? `${result.count} lessen gesynchroniseerd (week ${result.week}).`
+          : `Synced ${result.count} lessons (week ${result.week}).`
+      );
     } catch (e: any) {
       setSyncError(e.message ?? "Sync mislukt");
     } finally {
@@ -240,7 +238,7 @@ export default function SettingsPage() {
         {/* Calendars */}
         <CalendarsSection />
 
-        {/* iCal sync */}
+        {/* Zermelo live sync */}
         <section>
           <h2 className="text-sm font-semibold text-ink mb-1">{t.zermeloCalendar}</h2>
           <p className="text-xs text-ink-muted mb-3">
@@ -257,15 +255,15 @@ export default function SettingsPage() {
               <Link2 size={14} className="text-ink-muted flex-shrink-0" />
               <Input
                 className="flex-1"
-                value={icalUrl || currentUrl}
-                onChange={(e) => setIcalUrl(e.target.value)}
-                placeholder="https://your-school.zermelo.nl/api/v3/feed/ical/…"
+                value={externalAppCode || currentCode}
+                onChange={(e) => setExternalAppCode(e.target.value)}
+                placeholder="schoolnaam:extern_app_code"
               />
             </div>
 
-            {settings?.lastIcalSync && (
+            {(settings?.lastScheduleSync || settings?.lastIcalSync) && (
               <p className="text-xs text-ink-light">
-                {t.lastSynced}: {format(new Date(settings.lastIcalSync), "d MMM yyyy, HH:mm")}
+                {t.lastSynced}: {format(new Date(settings?.lastScheduleSync ?? settings!.lastIcalSync!), "d MMM yyyy, HH:mm")}
               </p>
             )}
 
@@ -288,7 +286,7 @@ export default function SettingsPage() {
                 size="sm"
                 variant="primary"
                 onClick={handleSync}
-                disabled={syncing || (!icalUrl && !currentUrl)}
+                disabled={syncing || (!externalAppCode && !currentCode)}
               >
                 <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
                 {syncing ? t.syncing : t.syncNow}

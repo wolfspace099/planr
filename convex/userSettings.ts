@@ -20,6 +20,7 @@ export const get = query({
 export const upsert = mutation({
   args: {
     icalUrl: v.optional(v.string()),
+    externalAppCode: v.optional(v.string()),
     displayName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -45,7 +46,10 @@ export const markSynced = mutation({
       .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .first();
     if (existing) {
-      await ctx.db.patch(existing._id, { lastIcalSync: Date.now() });
+      await ctx.db.patch(existing._id, {
+        lastIcalSync: Date.now(),
+        lastScheduleSync: Date.now(),
+      });
     }
   },
 });

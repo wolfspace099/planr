@@ -6,6 +6,8 @@ export default defineSchema({
     userId: v.string(),
     icalUrl: v.optional(v.string()),
     lastIcalSync: v.optional(v.number()),
+    externalAppCode: v.optional(v.string()),
+    lastScheduleSync: v.optional(v.number()),
     displayName: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
