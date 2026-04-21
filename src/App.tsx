@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { Analytics } from "@vercel/analytics/react";
 import AppLayout from "./components/layout/AppLayout";
 import TodayPage from "./pages/TodayPage";
 import NotebookPage from "./pages/NotebookPage";
@@ -43,6 +44,7 @@ export default function App() {
       <SignedOut>
         <LandingPage />
       </SignedOut>
+      <Analytics />
     </>
   );
 }
