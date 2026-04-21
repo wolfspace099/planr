@@ -206,12 +206,18 @@ function mapAppointmentToLesson(item: Record<string, unknown>): LiveScheduleAppo
 
 export const syncCalendar = action({
   args: {
-    externalAppCode: v.string(),
+    externalAppCode: v.optional(v.string()),
+    icalUrl: v.optional(v.string()),
+    userId: v.optional(v.string()),
     weekStartMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const parsed = parseExternalAppCode(args.externalAppCode);
+    const code = args.externalAppCode ?? args.icalUrl;
+    if (!code) {
+      throw new Error("Missing external application code.");
+    }
+    const parsed = parseExternalAppCode(code);
     const week = toIsoWeekString(new Date(args.weekStartMs ?? Date.now()));
 
     const endpoint = new URL(`https://${parsed.school}.zportal.nl/api/v3/liveschedule`);
