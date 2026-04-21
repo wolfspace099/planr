@@ -81,6 +81,7 @@ export const upsert = internalMutation({
     userId: v.string(),
     icalUid: v.string(),
     subject: v.string(),
+    teachers: v.optional(v.string()),
     startTime: v.number(),
     endTime: v.number(),
     location: v.optional(v.string()),
@@ -97,6 +98,7 @@ export const upsert = internalMutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         subject: args.subject,
+        teachers: args.teachers,
         startTime: args.startTime,
         endTime: args.endTime,
         location: args.location,

@@ -11,6 +11,7 @@ type ParsedCode = {
 type LiveScheduleAppointment = {
   icalUid: string;
   subject: string;
+  teachers?: string;
   startTime: number;
   endTime: number;
   location?: string;
@@ -271,8 +272,19 @@ function mapAppointmentToLesson(item: Record<string, unknown>): LiveScheduleAppo
     normalizeString(item.description) ||
     "Lesson";
 
+  // Filter out internal/placeholder subjects
+  const subjectLower = subject.toLowerCase();
+  if (
+    subjectLower === "s" ||
+    subjectLower.startsWith("s/") ||
+    subjectLower.startsWith("inh") ||
+    subjectLower === "inhaal"
+  ) {
+    return null;
+  }
+
   const location = normalizeString(item.location) || locations.join(", ") || undefined;
-  const teacherLabel = teachers.length > 0 ? ` (${teachers.join(", ")})` : "";
+  const teacherLabel = teachers.length > 0 ? teachers.join(", ") : undefined;
 
   const idBits = [
     normalizeString(item.id),
@@ -285,7 +297,8 @@ function mapAppointmentToLesson(item: Record<string, unknown>): LiveScheduleAppo
 
   return {
     icalUid: idBits.join("|"),
-    subject: `${subject}${teacherLabel}`,
+    subject,
+    teachers: teacherLabel,
     startTime,
     endTime,
     location,
@@ -404,6 +417,7 @@ export const syncCalendar = action({
       await ctx.runMutation(internal.lessons.upsert, {
         userId,
         ...lesson,
+        teachers: lesson.teachers,
       });
       upserted += 1;
     }

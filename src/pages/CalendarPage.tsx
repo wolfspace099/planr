@@ -770,7 +770,13 @@ export default function CalendarPage() {
                 </div>
               </div>
               {period && <span className="text-[9px] text-ink-light leading-none">{period}</span>}
-              {l.location && <span className="text-[9px] text-ink-muted leading-tight flex items-center gap-0.5 truncate"><MapPin size={7} className="shrink-0" />{l.location}</span>}
+              {(l.location || l.teachers) && (
+                <span className="text-[9px] text-ink-muted leading-tight flex items-center gap-0.5 truncate">
+                  {l.location && <><MapPin size={7} className="shrink-0" />{l.location}</>}
+                  {l.location && l.teachers && <span className="text-ink-light mx-0.5">·</span>}
+                  {l.teachers && <span className="truncate">{l.teachers}</span>}
+                </span>
+              )}
               <span className="text-[9px] text-ink-light leading-none mt-auto">{format(start, "HH:mm")}–{format(end, "HH:mm")}</span>
             </div>
           </Link>

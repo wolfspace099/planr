@@ -21,6 +21,7 @@ export default defineSchema({
     userId: v.string(),
     icalUid: v.string(),
     subject: v.string(),
+    teachers: v.optional(v.string()),
     startTime: v.number(),
     endTime: v.number(),
     location: v.optional(v.string()),
