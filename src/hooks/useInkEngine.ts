@@ -98,16 +98,22 @@ function getSvgPathFromStroke(points: number[][]): string {
 function renderStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
   if (stroke.points.length < 2) return;
 
-  // Define the type to match exactly what the library expects
-  const inputPoints = stroke.points.map(
+  // 1. Ensure inputPoints is ALWAYS an array (even if points is undefined)
+  const inputPoints = (stroke?.points ?? []).map(
     (p): [number, number, number | undefined] => [p.x, p.y, p.pressure]
   );
 
-  // If you are getting the 'e.filter is not a function' error, 
-  // add this safety check immediately after:
-  if (!inputPoints || inputPoints.length === 0) return null;
+  // 2. RUNTIME GUARD: perfect-freehand CRASHES if the array is empty or not an array.
+  // We must check this BEFORE calling getStroke.
+  if (!Array.isArray(inputPoints) || inputPoints.length === 0) {
+    return null; 
+  }
 
-  const outlinePoints = getStroke(inputPoints, getFreehandOptions(stroke.tool, stroke.size));
+  // 3. Only now is it safe to call the library
+  const outlinePoints = getStroke(
+    inputPoints, 
+    getFreehandOptions(stroke.tool, stroke.size)
+  );
 
   const pathStr = getSvgPathFromStroke(outlinePoints);
   const path = new Path2D(pathStr);
