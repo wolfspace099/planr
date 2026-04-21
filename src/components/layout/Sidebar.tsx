@@ -14,16 +14,18 @@ import {
   ChevronRight,
   GraduationCap,
 } from "lucide-react";
+import { useState } from "react";
 import clsx from "clsx";
 import { useLang } from "../../i18n";
 
 export default function Sidebar({
-  collapsed,
-  onToggleCollapsed,
+  collapsed: _ignored,
+  onToggleCollapsed: _ignoredCb,
 }: {
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
+  const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const { t } = useLang();
 
@@ -56,22 +58,19 @@ export default function Sidebar({
         collapsed ? "w-16" : "w-56"
       )}
     >
-      {/* Logo */}
+      {/* Logo + toggle */}
       <div className={clsx(
         "flex items-center py-4 border-b border-sidebar-border transition-all duration-200",
         collapsed ? "justify-center px-2" : "justify-between px-4"
       )}>
-        <span
-          className={clsx(
-            "inline-block text-white font-semibold tracking-tight transition-all duration-200",
-            collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
-          )}
-        >
-          planr
-        </span>
+        {!collapsed && (
+          <span className="text-white font-semibold tracking-tight">
+            planr
+          </span>
+        )}
         <button
           type="button"
-          onClick={onToggleCollapsed}
+          onClick={() => setCollapsed((v) => !v)}
           className="rounded-full p-1.5 text-sidebar-text hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer"
           aria-label={collapsed ? "Sidebar uitklappen" : "Sidebar inklappen"}
         >
@@ -106,14 +105,9 @@ export default function Sidebar({
                   )}
                 >
                   <Icon size={15} strokeWidth={1.75} />
-                  <span
-                    className={clsx(
-                      "inline-block truncate transition-all duration-200",
-                      collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
-                    )}
-                  >
-                    {label}
-                  </span>
+                  {!collapsed && (
+                    <span className="truncate">{label}</span>
+                  )}
                 </NavLink>
               );
             })}
@@ -122,7 +116,10 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="px-4 py-4 border-t border-sidebar-border flex items-center justify-between gap-2">
+      <div className={clsx(
+        "py-4 border-t border-sidebar-border flex items-center gap-2",
+        collapsed ? "justify-center px-2" : "justify-between px-4"
+      )}>
         <NavLink
           to="/settings"
           className={clsx(
@@ -134,15 +131,13 @@ export default function Sidebar({
         >
           <Settings size={15} />
         </NavLink>
-        <div className={clsx(collapsed ? "opacity-0 w-0" : "opacity-100")}>
+        {!collapsed && (
           <UserButton
             appearance={{
-              elements: {
-                avatarBox: "w-7 h-7",
-              },
+              elements: { avatarBox: "w-7 h-7" },
             }}
           />
-        </div>
+        )}
       </div>
     </aside>
   );
