@@ -42,3 +42,41 @@ export const save = mutation({
     }
   },
 });
+
+// ─── Get notebook note by subject ────────────────────────────────────────────
+export const getNotebook = query({
+  args: { subject: v.string() },
+  handler: async (ctx, { subject }) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("notes")
+      .withIndex("by_user_subject", (q: any) =>
+        q.eq("userId", userId).eq("subject", subject)
+      )
+      .unique();
+  },
+});
+
+// ─── Save notebook note by subject ───────────────────────────────────────────
+export const saveNotebook = mutation({
+  args: { subject: v.string(), content: v.string() },
+  handler: async (ctx, { subject, content }) => {
+    const userId = await requireUser(ctx);
+    const existing = await ctx.db
+      .query("notes")
+      .withIndex("by_user_subject", (q: any) =>
+        q.eq("userId", userId).eq("subject", subject)
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { content, updatedAt: Date.now() });
+    } else {
+      await ctx.db.insert("notes", {
+        userId,
+        subject,
+        content,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});

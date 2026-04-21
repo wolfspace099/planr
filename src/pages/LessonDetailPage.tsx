@@ -5,7 +5,6 @@ import { Id } from "../../convex/_generated/dataModel";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { ArrowLeft, MapPin, Clock, BookOpen, ClipboardList, CheckSquare, Plus, Trash2, Save, FlaskConical } from "lucide-react";
-import NoteEditor from "../components/editor/NoteEditor";
 import { Button, Modal, Input, Textarea, Badge, EmptyState } from "../components/ui/primitives";
 import clsx from "clsx";
 
@@ -127,13 +126,29 @@ export default function LessonDetailPage() {
         ))}
       </div>
 
-      {/* Notes tab */}
+      {/* Notes tab — redirects to unified subject notebook */}
       {tab === "notes" && (
-        <NoteEditor
-          content={note?.content ?? ""}
-          onChange={handleSaveNote}
-          placeholder={`Start writing notes for ${lesson.subject}…`}
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 p-4 bg-surface border border-border rounded-lg">
+            <BookOpen size={16} className="text-accent flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-ink">Notes live in your subject notebook</p>
+              <p className="text-xs text-ink-muted mt-0.5">
+                Open the <strong>{lesson.subject}</strong> notebook and type{" "}
+                <code className="bg-border/60 px-1 rounded text-[11px]">
+                  Date: {format(new Date(lesson.startTime), "dd/MM/yyyy")}
+                </code>{" "}
+                to link this lesson.
+              </p>
+            </div>
+            <Link
+              to={`/notebook/${encodeURIComponent(lesson.subject)}`}
+              className="flex-shrink-0 px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+            >
+              Open notebook →
+            </Link>
+          </div>
+        </div>
       )}
 
       {/* Homework tab */}

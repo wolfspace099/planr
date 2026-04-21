@@ -1,39 +1,25 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
 import { format } from "date-fns";
-import { useState } from "react";
-import { BookOpen, Plus, ChevronRight, FileText, ClipboardList, Tag } from "lucide-react";
-import { PageHeader, Button, Modal, Input, EmptyState, Badge } from "../components/ui/primitives";
+import { useState, useEffect, useRef } from "react";
+import { BookOpen, ChevronRight, FileText, Hash, Calendar, ClipboardList, Plus } from "lucide-react";
+import { PageHeader, Button, EmptyState, Badge } from "../components/ui/primitives";
+import BigNoteEditor from "../components/editor/BigNoteEditor";
 import clsx from "clsx";
 
+// ─── Subject list ────────────────────────────────────────────────────────────
 export default function NotebookPage() {
   const { subject: encodedSubject } = useParams<{ subject?: string }>();
   const subject = encodedSubject ? decodeURIComponent(encodedSubject) : null;
   const navigate = useNavigate();
 
   const subjects = useQuery(api.lessons.getSubjects);
-  const lessons = useQuery(
-    api.lessons.getBySubject,
-    subject ? { subject } : "skip"
-  );
-  const chapters = useQuery(
-    api.misc.getBySubject,
-    subject ? { subject } : "skip"
-  );
-
-  const createChapter = useMutation(api.misc.createChapter);
-  const setChapter = useMutation(api.lessons.setChapter);
-  const [chapterModal, setChapterModal] = useState(false);
-  const [newChapterName, setNewChapterName] = useState("");
-  const [assignModal, setAssignModal] = useState<string | null>(null);
 
   if (!subject) {
-    // Subject list view
     return (
       <div className="animate-fade-in">
-        <PageHeader title="Notebook" subtitle="Your notes, organised by subject and chapter" />
+        <PageHeader title="Notebook" subtitle="One notebook per subject — write freely" />
         {(subjects?.length ?? 0) === 0 ? (
           <EmptyState
             icon={<BookOpen size={32} />}
@@ -45,7 +31,7 @@ export default function NotebookPage() {
           <div className="grid grid-cols-2 gap-3">
             {subjects?.map((s) => (
               <Link key={s} to={`/notebook/${encodeURIComponent(s)}`}>
-                <div className="p-4 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all group">
+                <div className="p-4 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all group cursor-pointer">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-2 bg-accent-light rounded">
                       <BookOpen size={16} className="text-accent" />
@@ -53,7 +39,7 @@ export default function NotebookPage() {
                     <ChevronRight size={14} className="text-ink-light group-hover:text-ink transition-colors" />
                   </div>
                   <p className="font-semibold text-ink text-sm mt-2">{s}</p>
-                  <p className="text-xs text-ink-muted mt-0.5">View notes →</p>
+                  <p className="text-xs text-ink-muted mt-0.5">Open notebook →</p>
                 </div>
               </Link>
             ))}
@@ -63,164 +49,116 @@ export default function NotebookPage() {
     );
   }
 
-  // Group lessons by chapter
-  const ungrouped = (lessons ?? []).filter((l) => !l.chapterId);
-  const grouped: Record<string, typeof lessons> = {};
-  for (const ch of chapters ?? []) {
-    grouped[ch._id] = (lessons ?? []).filter((l) => l.chapterId === ch._id);
+  return <SubjectNotebook subject={subject} />;
+}
+
+// ─── TOC entry types ─────────────────────────────────────────────────────────
+interface TocEntry {
+  id: string;
+  type: "chapter" | "date";
+  label: string;
+  level?: number;
+}
+
+// ─── Subject notebook ────────────────────────────────────────────────────────
+function SubjectNotebook({ subject }: { subject: string }) {
+  const lessons = useQuery(api.lessons.getBySubject, { subject });
+  const notebookNote = useQuery(api.notes.getNotebook, { subject });
+  const saveNotebook = useMutation(api.notes.saveNotebook);
+
+  const [toc, setToc] = useState<TocEntry[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async (html: string) => {
+    await saveNotebook({ subject, content: html });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  // Lesson map: date string → lesson for auto-linking
+  const lessonsByDate: Record<string, any> = {};
+  for (const l of lessons ?? []) {
+    const key = format(new Date(l.startTime), "dd/MM/yyyy");
+    lessonsByDate[key] = l;
+    // Also match short forms
+    const key2 = format(new Date(l.startTime), "d/M/yyyy");
+    lessonsByDate[key2] = l;
+    const key3 = format(new Date(l.startTime), "dd-MM-yyyy");
+    lessonsByDate[key3] = l;
   }
 
   return (
-    <div className="animate-fade-in">
-      <PageHeader
-        title={subject}
-        subtitle="Lesson notes by chapter"
-        actions={
-          <Button size="sm" onClick={() => setChapterModal(true)}>
-            <Plus size={13} /> New chapter
-          </Button>
-        }
-      />
-
-      {/* Chapters */}
-      {(chapters ?? []).map((ch) => (
-        <div key={ch._id} className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Tag size={13} className="text-ink-light" />
-            <h2 className="text-sm font-semibold text-ink">{ch.name}</h2>
-            <span className="text-xs text-ink-light">
-              {grouped[ch._id]?.length ?? 0} lessons
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            {(grouped[ch._id] ?? []).length === 0 ? (
-              <p className="text-xs text-ink-light pl-5 py-1">No lessons assigned to this chapter yet.</p>
-            ) : (
-              grouped[ch._id]?.map((l) => (
-                <LessonRow key={l._id} lesson={l} onAssign={() => setAssignModal(l._id)} />
-              ))
-            )}
-          </div>
+    <div className="animate-fade-in flex h-full gap-0">
+      {/* TOC sidebar */}
+      <aside className="w-52 flex-shrink-0 border-r border-border bg-surface/40 flex flex-col overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <Link to="/notebook" className="text-xs text-ink-muted hover:text-ink transition-colors">
+            ← Notebooks
+          </Link>
+          {saved && <span className="text-[10px] text-success">Saved ✓</span>}
         </div>
-      ))}
-
-      {/* Ungrouped */}
-      {ungrouped.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-ink-muted">Unassigned lessons</h2>
-          </div>
-          <div className="space-y-1.5">
-            {ungrouped.map((l) => (
-              <LessonRow key={l._id} lesson={l} onAssign={() => setAssignModal(l._id)} />
-            ))}
-          </div>
+        <div className="px-3 py-2 border-b border-border">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">{subject}</p>
         </div>
-      )}
-
-      {(lessons?.length ?? 0) === 0 && (
-        <EmptyState
-          icon={<BookOpen size={32} />}
-          title="No lessons for this subject"
-          description="Lessons will appear here after syncing your Zermelo calendar."
-        />
-      )}
-
-      {/* New chapter modal */}
-      <Modal open={chapterModal} onClose={() => setChapterModal(false)} title="New chapter">
-        <div className="space-y-3">
-          <Input
-            label="Chapter name"
-            value={newChapterName}
-            onChange={(e) => setNewChapterName(e.target.value)}
-            placeholder="e.g. Chapter 3 — Algebra"
-          />
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setChapterModal(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={async () => {
-                if (!newChapterName.trim()) return;
-                await createChapter({ subject, name: newChapterName, order: (chapters?.length ?? 0) });
-                setNewChapterName("");
-                setChapterModal(false);
-              }}
-            >
-              Create
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Assign chapter modal */}
-      {assignModal && (
-        <Modal open={!!assignModal} onClose={() => setAssignModal(null)} title="Assign to chapter">
-          <div className="space-y-2">
-            <button
-              className="w-full text-left px-3 py-2 rounded text-sm text-ink-muted hover:bg-bg transition-colors border border-border"
-              onClick={async () => {
-                await setChapter({ lessonId: assignModal as Id<"lessons">, chapterId: undefined });
-                setAssignModal(null);
-              }}
-            >
-              None (unassigned)
-            </button>
-            {(chapters ?? []).map((ch) => (
+        <div className="flex-1 overflow-y-auto py-2">
+          {toc.length === 0 ? (
+            <div className="px-4 py-3">
+              <p className="text-xs text-ink-light leading-relaxed">
+                Your chapters and dates will appear here as you write.
+              </p>
+              <div className="mt-3 space-y-1.5 text-[11px] text-ink-light">
+                <p className="font-medium text-ink-muted">Tips:</p>
+                <p>• H1/H2 → chapter</p>
+                <p>• <code className="bg-border/60 px-1 rounded">Date: 04/05/2026</code></p>
+              </div>
+            </div>
+          ) : (
+            toc.map((entry) => (
               <button
-                key={ch._id}
-                className="w-full text-left px-3 py-2 rounded text-sm text-ink hover:bg-bg transition-colors border border-border"
-                onClick={async () => {
-                  await setChapter({ lessonId: assignModal as Id<"lessons">, chapterId: ch._id });
-                  setAssignModal(null);
+                key={entry.id}
+                onClick={() => {
+                  setActiveId(entry.id);
+                  document.getElementById(entry.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
+                className={clsx(
+                  "w-full text-left flex items-center gap-2 px-3 py-1.5 transition-colors text-xs rounded-md mx-1",
+                  activeId === entry.id
+                    ? "bg-accent/10 text-accent"
+                    : "text-ink-muted hover:text-ink hover:bg-border/40",
+                  entry.type === "date" && "pl-5"
+                )}
               >
-                {ch.name}
+                {entry.type === "chapter" ? (
+                  <Hash size={10} className="flex-shrink-0 opacity-60" />
+                ) : (
+                  <Calendar size={10} className="flex-shrink-0 opacity-60" />
+                )}
+                <span className="truncate">{entry.label}</span>
               </button>
-            ))}
+            ))
+          )}
+        </div>
+
+        {/* Linked lesson count */}
+        {(lessons?.length ?? 0) > 0 && (
+          <div className="px-4 py-3 border-t border-border">
+            <p className="text-[10px] text-ink-light">{lessons!.length} lessons available to link</p>
           </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
+        )}
+      </aside>
 
-function LessonRow({ lesson, onAssign }: { lesson: any; onAssign: () => void }) {
-  const note = useQuery(api.notes.getByLesson, { lessonId: lesson._id });
-  const homework = useQuery(api.homework.getByLesson, { lessonId: lesson._id });
-
-  return (
-    <div className="flex items-center gap-3 group">
-      <Link
-        to={`/lesson/${lesson._id}`}
-        className="flex-1 flex items-center gap-3 p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all"
-      >
-        <span className="text-xs font-mono text-ink-muted w-20 flex-shrink-0">
-          {format(new Date(lesson.startTime), "dd MMM HH:mm")}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-ink truncate">{lesson.subject}</p>
-          {lesson.location && (
-            <p className="text-xs text-ink-light">{lesson.location}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {note?.content && note.content !== "<p></p>" && (
-            <span title="Has notes">
-              <FileText size={13} className="text-accent" />
-            </span>
-          )}
-          {(homework?.length ?? 0) > 0 && (
-            <Badge color="amber">{homework!.length} hw</Badge>
-          )}
-        </div>
-      </Link>
-      <button
-        onClick={onAssign}
-        className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-ink-light hover:text-ink hover:bg-border transition-all"
-        title="Assign to chapter"
-      >
-        <Tag size={13} />
-      </button>
+      {/* Editor */}
+      <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+        <BigNoteEditor
+          content={notebookNote?.content ?? ""}
+          onChange={handleSave}
+          onTocChange={setToc}
+          onActiveChange={setActiveId}
+          lessonsByDate={lessonsByDate}
+          subject={subject}
+        />
+      </div>
     </div>
   );
 }

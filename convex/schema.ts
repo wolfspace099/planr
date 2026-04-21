@@ -40,12 +40,14 @@ export default defineSchema({
 
   notes: defineTable({
     userId: v.string(),
-    lessonId: v.id("lessons"),
+    lessonId: v.optional(v.id("lessons")), // optional — null for subject notebook notes
+    subject: v.optional(v.string()),        // for subject-level notebook notes
     content: v.string(),
     updatedAt: v.number(),
   })
     .index("by_lesson", ["lessonId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_user_subject", ["userId", "subject"]),
 
   homework: defineTable({
     userId: v.string(),
@@ -97,7 +99,6 @@ export default defineSchema({
     .index("by_test", ["testId"])
     .index("by_user", ["userId"]),
 
-  // Sessions for tests (learning before a test)
   studySessions: defineTable({
     userId: v.string(),
     testId: v.id("tests"),
@@ -112,7 +113,6 @@ export default defineSchema({
     .index("by_test", ["testId"])
     .index("by_user_time", ["userId", "startTime"]),
 
-  // Sessions for doing/planning homework
   homeworkSessions: defineTable({
     userId: v.string(),
     homeworkId: v.id("homework"),
@@ -127,7 +127,6 @@ export default defineSchema({
     .index("by_homework", ["homeworkId"])
     .index("by_user_time", ["userId", "startTime"]),
 
-  // Free rehearsal sessions (not tied to a specific test or homework)
   rehearsalSessions: defineTable({
     userId: v.string(),
     subject: v.string(),
