@@ -578,26 +578,24 @@ export default function CalendarPage() {
 
   const settings     = useQuery(api.userSettings.get);
   const syncCalendar = useAction(api.ical.syncCalendar);
-  const [lastSyncKey, setLastSyncKey] = useState<string | null>(null);
+  const hasSynced    = useRef(false);
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number } | null>(null);
 
   useEffect(() => {
-    const weekKey = format(weekStart, "yyyy-ww");
+    if (hasSynced.current) return;
     const syncSeed =
       settings?.externalAppCode ||
       (settings?.zermeloSchool && settings?.zermeloAccessToken
         ? `${settings.zermeloSchool}:${settings.zermeloTokenUpdatedAt ?? ""}`
         : "");
-    const syncKey = `${syncSeed}:${weekKey}`;
-    if (syncSeed && lastSyncKey !== syncKey) {
-      setLastSyncKey(syncKey);
-      syncCalendar({
-        externalAppCode: settings?.externalAppCode,
-        zermeloSchool: settings?.zermeloSchool,
-        weekStartMs: weekStart.getTime(),
-      }).catch(() => {});
-    }
-  }, [settings, lastSyncKey, syncCalendar, weekStart]);
+    if (!syncSeed) return;
+    hasSynced.current = true;
+    syncCalendar({
+      externalAppCode: settings?.externalAppCode,
+      zermeloSchool: settings?.zermeloSchool,
+      weekStartMs: weekStart.getTime(),
+    }).catch(() => {});
+  }, [settings, syncCalendar, weekStart]);
 
   useEffect(() => {
     if (!scrollRef.current) return;
