@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format } from "date-fns";
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, ChevronRight, FileText, Hash, Calendar, ClipboardList, Plus } from "lucide-react";
+import { BookOpen, ChevronRight, FileText, Hash, Calendar, ClipboardList, Plus, PenLine } from "lucide-react";
 import { PageHeader, Button, EmptyState, Badge } from "../components/ui/primitives";
 import BigNoteEditor from "../components/editor/BigNoteEditor";
 import clsx from "clsx";
@@ -96,7 +96,16 @@ function SubjectNotebook({ subject }: { subject: string }) {
           <Link to="/notebook" className="text-xs text-ink-muted hover:text-ink transition-colors">
             ← Notebooks
           </Link>
-          {saved && <span className="text-[10px] text-success">Saved ✓</span>}
+          <div className="flex items-center gap-2">
+            {saved && <span className="text-[10px] text-success">Saved ✓</span>}
+            <Link
+              to={'/ink/' + encodeURIComponent(subject)}
+              className="p-1 rounded text-ink-muted hover:text-ink hover:bg-border/60 transition-colors"
+              title="Switch to ink / handwriting mode"
+            >
+              <PenLine size={13} />
+            </Link>
+          </div>
         </div>
         <div className="px-3 py-2 border-b border-border">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">{subject}</p>

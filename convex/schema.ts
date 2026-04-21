@@ -182,4 +182,13 @@ export default defineSchema({
     icalUrl: v.optional(v.string()),
     order: v.number(),
   }).index("by_user", ["userId"]),
+
+  inkStrokes: defineTable({
+    userId: v.string(),
+    subject: v.string(),
+    strokes: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_subject", ["userId", "subject"]),
 });

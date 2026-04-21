@@ -13,6 +13,7 @@ import TestsPage from "./pages/TestsPage";
 import StudyPlannerPage from "./pages/StudyPlannerPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
+import InkNotebookPage from "./pages/InkNotebookPage";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/appointments" element={<AppointmentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/landing" element={<LandingPage />} />
+            <Route path="/ink/:subject" element={<InkNotebookPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
