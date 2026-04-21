@@ -134,11 +134,7 @@ export default function LessonDetailPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-ink">Notes live in your subject notebook</p>
               <p className="text-xs text-ink-muted mt-0.5">
-                Open the <strong>{lesson.subject}</strong> notebook and type{" "}
-                <code className="bg-border/60 px-1 rounded text-[11px]">
-                  Date: {format(new Date(lesson.startTime), "dd/MM/yyyy")}
-                </code>{" "}
-                to link this lesson.
+                Open the <strong>{lesson.subject}</strong> notebook to add handwritten notes or place typed text directly on the page.
               </p>
             </div>
             <Link

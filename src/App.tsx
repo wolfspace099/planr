@@ -25,7 +25,7 @@ export default function App() {
             <Route path="/home" element={<LandingPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/notebook" element={<NotebookPage />} />
-            <Route path="/notebook/:subject" element={<NotebookPage />} />
+            <Route path="/notebook/:subject" element={<InkNotebookPage />} />
             <Route path="/lesson/:id" element={<LessonDetailPage />} />
             <Route path="/homework" element={<HomeworkPage />} />
             <Route path="/tasks" element={<TasksPage />} />
