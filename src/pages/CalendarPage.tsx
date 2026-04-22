@@ -434,103 +434,103 @@ function StudyPlannerBoard({
   weekFocus,
   dayBlocks,
 }: {
-  days: Date[]; // now expects 20 dates (4 weeks × 5 days)
+  days: Date[]; // multiple weeks flattened
   weekLabel: string;
   weekFocus: PlannerBlock[];
   dayBlocks: Record<string, PlannerBlock[]>;
 }) {
   const toneClasses: Record<PlannerBlock["tone"], string> = {
-    test:     "border-purple-500/30 bg-purple-500/10 text-purple-300",
+    test: "border-purple-500/30 bg-purple-500/10 text-purple-300",
     homework: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-    study:    "border-blue-500/30 bg-blue-500/10 text-blue-300",
-    task:     "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    study: "border-blue-500/30 bg-blue-500/10 text-blue-300",
+    task: "border-amber-500/30 bg-amber-500/10 text-amber-300",
   };
+
+  // split into weeks of 5 days (Mon–Fri)
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 5) {
+    weeks.push(days.slice(i, i + 5));
+  }
 
   return (
     <div className="h-full overflow-auto">
-      <div className="min-w-[2400px]">
+      <div className="min-w-[1200px]">
+
         {/* Header */}
         <div
           className="grid border-b border-white/[0.06]"
-          style={{ gridTemplateColumns: "280px repeat(20, minmax(0, 1fr))" }}
+          style={{ gridTemplateColumns: "160px repeat(5, minmax(0, 1fr))" }}
         >
-          <div className="px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-              Week focus
-            </p>
-            <p className="mt-1 text-sm font-semibold text-white">{weekLabel}</p>
+          <div className="px-4 py-3 text-white/40 text-xs font-semibold uppercase">
+            Week
           </div>
 
-          {days.map((day) => (
+          {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
             <div
-              key={`header-${day.toISOString()}`}
-              className="border-l border-white/[0.06] px-5 py-4"
+              key={d}
+              className="border-l border-white/[0.06] px-4 py-3 text-white/40 text-xs font-semibold uppercase"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-                {format(day, "EEE")}
-              </p>
-              <p
-                className={clsx(
-                  "mt-1 text-2xl font-semibold",
-                  isToday(day) ? "text-white" : "text-white/60"
-                )}
-              >
-                {format(day, "d")}
-              </p>
+              {d}
             </div>
           ))}
         </div>
 
-        {/* Content */}
-        <div
-          className="grid min-h-[640px]"
-          style={{ gridTemplateColumns: "280px repeat(20, minmax(0, 1fr))" }}
-        >
-          {/* Focus column */}
-          <div className="space-y-3 border-r border-white/[0.06] p-4">
-            {weekFocus.length === 0 ? (
-              <p className="text-sm text-white/30">
-                No tests or homework due this period.
-              </p>
-            ) : (
-              weekFocus.map((item) => (
-                <div
-                  key={item.id}
-                  className={clsx("rounded-xl border p-3", toneClasses[item.tone])}
-                >
-                  <p className="text-sm font-semibold leading-tight">{item.title}</p>
-                  <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
-                </div>
-              ))
-            )}
-          </div>
+        {/* Weeks */}
+        <div className="flex flex-col">
+          {weeks.map((weekDays, weekIndex) => (
+            <div
+              key={`week-${weekIndex}`}
+              className="grid border-b border-white/[0.06]"
+              style={{ gridTemplateColumns: "160px repeat(5, minmax(0, 1fr))" }}
+            >
 
-          {/* 4-week day columns */}
-          {days.map((day) => {
-            const key = format(day, "yyyy-MM-dd");
-            const items = dayBlocks[key] ?? [];
-
-            return (
-              <div
-                key={`column-${day.toISOString()}`}
-                className="space-y-3 border-l border-white/[0.06] p-4"
-              >
-                {items.length === 0 ? (
-                  <p className="pt-1 text-sm text-white/30">No blocks planned.</p>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={clsx("rounded-xl border p-3.5", toneClasses[item.tone])}
-                    >
-                      <p className="text-sm font-semibold leading-tight">{item.title}</p>
-                      <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
-                    </div>
-                  ))
-                )}
+              {/* Week label */}
+              <div className="p-4 border-r border-white/[0.06]">
+                <p className="text-sm font-semibold text-white">
+                  Week {weekIndex + 1}
+                </p>
               </div>
-            );
-          })}
+
+              {/* Days */}
+              {weekDays.map((day) => {
+                const key = format(day, "yyyy-MM-dd");
+                const items = dayBlocks[key] ?? [];
+
+                return (
+                  <div
+                    key={key}
+                    className="space-y-2 p-3 border-l border-white/[0.06] min-h-[160px]"
+                  >
+                    <p className="text-xs text-white/40">
+                      {format(day, "d MMM")}
+                    </p>
+
+                    {items.length === 0 ? (
+                      <p className="text-xs text-white/20">—</p>
+                    ) : (
+                      items.map((item) => (
+                        <div
+                          key={item.id}
+                          className={clsx(
+                            "rounded-lg border p-2",
+                            toneClasses[item.tone]
+                          )}
+                        >
+                          <p className="text-xs font-semibold">
+                            {item.title}
+                          </p>
+                          <p className="text-[10px] opacity-70">
+                            {item.subtitle}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+
+            </div>
+          ))}
         </div>
       </div>
     </div>
