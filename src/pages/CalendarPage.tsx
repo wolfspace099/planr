@@ -16,7 +16,7 @@ import { PageHeader, Modal, Input, Textarea, Button } from "../components/ui/pri
 import { useLang } from "../i18n";
 import clsx from "clsx";
 
-const HOUR_HEIGHT = 68;
+const HOUR_HEIGHT = 56;
 const START_HOUR  = 7;
 const END_HOUR    = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -426,8 +426,8 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   ];
 
   return (
-    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-white/[0.06]">
+    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto bg-[#111111]">
+      <div className="px-4 py-3 border-b border-white/[0.08]">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Agenda's</p>
       </div>
 
@@ -824,7 +824,7 @@ export default function CalendarPage() {
     <div className="flex flex-col h-full overflow-hidden bg-[#0f0f0f]">
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 h-14 border-b border-white/[0.06]">
+      <div className="flex-shrink-0 flex items-center justify-between px-5 h-14 border-b border-white/[0.08] bg-[#161616]">
         {/* Left: view switcher pill */}
         <div className="flex items-center gap-1 bg-white/[0.06] rounded-xl p-1 h-9">
           <button
@@ -881,8 +881,8 @@ export default function CalendarPage() {
 
       {/* ── Main content area ────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Calendar side panel */}
-        {calendars.length > 0 && <CalendarSidePanel calendars={calendars} />}
+        {/* Left calendar side panel — always visible */}
+        <CalendarSidePanel calendars={calendars} />
 
         {/* Grid area */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
@@ -896,7 +896,7 @@ export default function CalendarPage() {
           ) : (
             <>
               {/* ── Day headers ─────────────────────────────────────────── */}
-              <div className="flex-shrink-0 border-b border-white/[0.06] overflow-x-auto">
+              <div className="flex-shrink-0 border-b border-white/[0.08] overflow-x-auto bg-[#161616]">
                 <div className="min-w-[700px]">
                   <div className="grid" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)` }}>
                     {/* GMT label */}
@@ -1017,6 +1017,13 @@ export default function CalendarPage() {
               </div>
             </>
           )}
+        </div>
+
+        {/* Right side panel */}
+        <div className="w-12 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col items-center py-3 gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
+          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
+          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
         </div>
       </div>
 
