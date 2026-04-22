@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { studyApi } from "../studyApi";
 import {
   startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval,
-  format, isSameDay, isToday,
+  format, isSameDay, isToday, getISOWeek,
 } from "date-fns";
 import {
   ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen,
@@ -491,10 +491,10 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   );
 }
 
-// ─── Event chip interface ────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface EventChip { key: string; top: number; height: number; node: React.ReactNode; }
-
 type CalendarViewMode = "week" | "studyPlanner";
+type CalendarTab = "calendar" | "studyPlanner" | "grades" | "messages";
 
 type PlannerBlock = {
   id: string;
@@ -577,19 +577,126 @@ function StudyPlannerBoard({
   );
 }
 
-// ─── Calendar Right Sidebar ──────────────────────────────────────────────────
-function CalendarRightSidebar({
+// ─── Calendar Top Bar ────────────────────────────────────────────────────────
+function CalendarTopBar({
   weekStart,
   setWeekStart,
-  viewMode,
-  setViewMode,
-  lessons,
-  calendars,
+  activeTab,
+  setActiveTab,
 }: {
   weekStart: Date;
   setWeekStart: (d: Date) => void;
-  viewMode: CalendarViewMode;
-  setViewMode: (v: CalendarViewMode) => void;
+  activeTab: CalendarTab;
+  setActiveTab: (t: CalendarTab) => void;
+}) {
+  const { t } = useLang();
+  const weekNumber = getISOWeek(weekStart);
+
+  const tabs: { key: CalendarTab; label: string; icon: React.ReactNode }[] = [
+    {
+      key: "calendar",
+      label: "Rooster",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+      ),
+    },
+    {
+      key: "studyPlanner",
+      label: "Studiewijzer",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 010 6.844L12 14z"/><path d="M12 14v8"/>
+        </svg>
+      ),
+    },
+    {
+      key: "grades",
+      label: "Cijfers",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+      ),
+    },
+    {
+      key: "messages",
+      label: "Berichten",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex-shrink-0 flex items-center h-11 bg-[#111111] border-b border-white/[0.07] px-4 gap-4">
+      {/* Logo */}
+      <span className="text-white font-semibold tracking-tight text-sm w-44 flex-shrink-0">planr</span>
+
+      {/* Tabs — centred */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-0.5">
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={clsx(
+                  "relative flex items-center gap-1.5 px-3 h-11 text-[12.5px] font-medium transition-colors",
+                  active ? "text-white" : "text-white/40 hover:text-white/70"
+                )}
+              >
+                <span className={clsx("transition-colors", active ? "text-white" : "text-white/35")}>
+                  {tab.icon}
+                </span>
+                {tab.label}
+                {/* Active underline */}
+                {active && (
+                  <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-white rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Week nav — right side */}
+      <div className="flex items-center gap-1.5 w-44 flex-shrink-0 justify-end">
+        <span className="text-[12px] font-semibold text-white/50 tabular-nums mr-1">
+          Week {weekNumber}
+        </span>
+        <button
+          onClick={() => setWeekStart(subWeeks(weekStart, 1))}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <button
+          onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors"
+        >
+          <ChevronRight size={14} />
+        </button>
+        <button
+          onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+          className="h-7 px-2.5 rounded-md border border-white/[0.12] text-[11px] font-medium text-white/50 hover:text-white/80 hover:border-white/25 transition-colors"
+        >
+          {t.today2}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Calendar Right Sidebar ──────────────────────────────────────────────────
+function CalendarRightSidebar({
+  lessons,
+  calendars,
+}: {
   lessons: any[];
   calendars: any[];
 }) {
@@ -618,64 +725,11 @@ function CalendarRightSidebar({
     },
   ];
 
-  const weekLabel = `${format(weekStart, "d MMM")} – ${format(
-    endOfWeek(weekStart, { weekStartsOn: 1 }),
-    "d MMM"
-  )}`;
-
   return (
     <aside className="w-52 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col h-full overflow-hidden">
 
-      {/* ── Logo / top spacer — aligns with day headers ───────────────── */}
-      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06] flex items-center px-4">
-        <span className="text-white/80 font-semibold tracking-tight text-sm">planr</span>
-      </div>
-
-      {/* ── Week nav ──────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-3 py-3 border-b border-white/[0.06]">
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors"
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <button
-            onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="text-[11px] font-medium text-white/40 hover:text-white/80 transition-colors tabular-nums"
-          >
-            {weekLabel}
-          </button>
-          <button
-            onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors"
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* View mode toggle */}
-        <div className="flex items-center gap-1 bg-white/[0.05] rounded-lg p-0.5">
-          <button
-            onClick={() => setViewMode("week")}
-            className={clsx(
-              "flex-1 rounded-md py-1 text-[11px] font-medium transition-all",
-              viewMode === "week" ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60"
-            )}
-          >
-            Week
-          </button>
-          <button
-            onClick={() => setViewMode("studyPlanner")}
-            className={clsx(
-              "flex-1 rounded-md py-1 text-[11px] font-medium transition-all",
-              viewMode === "studyPlanner" ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60"
-            )}
-          >
-            Studie
-          </button>
-        </div>
-      </div>
+      {/* ── Spacer that aligns with day-header row ────────────────────── */}
+      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06]" />
 
       {/* ── Add button ────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-3 py-2.5 border-b border-white/[0.06]">
@@ -738,6 +792,14 @@ export default function CalendarPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
+  const [activeTab, setActiveTab] = useState<CalendarTab>("calendar");
+
+  // Keep viewMode in sync with tab selection
+  const handleTabChange = (tab: CalendarTab) => {
+    setActiveTab(tab);
+    if (tab === "calendar") setViewMode("week");
+    if (tab === "studyPlanner") setViewMode("studyPlanner");
+  };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd }).slice(0, 5);
@@ -984,6 +1046,14 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#0f0f0f]">
 
+      {/* ── Top bar ──────────────────────────────────────────────────────── */}
+      <CalendarTopBar
+        weekStart={weekStart}
+        setWeekStart={setWeekStart}
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+      />
+
       {/* ── Main content area ────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left: calendar toggles panel */}
@@ -1113,12 +1183,8 @@ export default function CalendarPage() {
           )}
         </div>
 
-        {/* Right: nav + controls sidebar */}
+        {/* Right: nav sidebar */}
         <CalendarRightSidebar
-          weekStart={weekStart}
-          setWeekStart={setWeekStart}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
           lessons={allLessons ?? []}
           calendars={calendars}
         />
