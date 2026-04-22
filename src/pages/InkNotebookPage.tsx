@@ -137,7 +137,7 @@ export default function InkNotebookPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [actions]);
 
-  const handlers = actions.getCanvasHandlers(canvasRef.current);
+  const { onSelectStart: _onSelectStart, ...handlers } = actions.getCanvasHandlers(canvasRef.current);
 
   const colorOptions = tool === "highlighter" ? HIGHLIGHTER_COLORS : PEN_COLORS;
 
