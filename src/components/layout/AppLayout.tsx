@@ -13,10 +13,10 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
-      <Sidebar
+      {/* <Sidebar
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
-      />
+      /> */}
 
       <main
         className={clsx(
