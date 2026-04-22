@@ -416,81 +416,6 @@ function NowLine({ days }: { days: Date[] }) {
   );
 }
 
-// ─── Calendar Side Panel ─────────────────────────────────────────────────────
-function CalendarSidePanel({ calendars }: { calendars: any[] }) {
-  const toggleVisible = useMutation(api.calendars.toggleVisible);
-  const regular  = calendars.filter((c) => !c.isSchedule);
-  const schedule = calendars.filter((c) => c.isSchedule);
-
-  const builtIn = [
-    { label: "Lessen",    color: "#6B7280" },
-    { label: "Studie",    color: "#8B5CF6" },
-    { label: "Huiswerk",  color: "#10B981" },
-    { label: "Herhaling", color: "#F59E0B" },
-  ];
-
-  return (
-    <div className="w-44 flex-shrink-0 border-r border-white/[0.06] bg-[#0f0f0f] flex flex-col overflow-y-auto">
-      {/* Spacer that matches the day-header height so columns line up */}
-      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06] flex items-end px-4 pb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/20">Agenda's</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto py-2">
-        {regular.length > 0 && (
-          <div className="pb-2">
-            {regular.map((cal) => (
-              <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
-                className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
-                <div className="w-3 h-3 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors"
-                  style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
-                  {cal.visible && <Check size={7} className="text-white" strokeWidth={3.5} />}
-                </div>
-                <span className="text-xs text-white/60 truncate">{cal.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {schedule.length > 0 && (
-          <>
-            <div className="px-4 pt-2 pb-1">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/20">Rooster</p>
-            </div>
-            <div className="pb-2">
-              {schedule.map((cal) => (
-                <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
-                  className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
-                  <div className="w-3 h-3 rounded flex items-center justify-center flex-shrink-0 border-2"
-                    style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
-                    {cal.visible && <Check size={7} className="text-white" strokeWidth={3.5} />}
-                  </div>
-                  <span className="text-xs text-white/60 truncate">{cal.name}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="px-4 pt-2 pb-1">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/20">Ingebouwd</p>
-        </div>
-        <div className="pb-4">
-          {builtIn.map((item) => (
-            <div key={item.label} className="flex items-center gap-2.5 px-4 py-1.5">
-              <div className="w-3 h-3 rounded border-2 flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: item.color, borderColor: item.color }}>
-                <Check size={7} className="text-white" strokeWidth={3.5} />
-              </div>
-              <span className="text-xs text-white/40">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface EventChip { key: string; top: number; height: number; node: React.ReactNode; }
 type CalendarViewMode = "week" | "studyPlanner";
@@ -964,7 +889,6 @@ export default function CalendarPage() {
 
       {/* ── Main content area ────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        <CalendarSidePanel calendars={calendars} />
 
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           {viewMode === "studyPlanner" ? (
