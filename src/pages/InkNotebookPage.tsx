@@ -309,14 +309,16 @@ export default function InkNotebookPage() {
             style={{
               cursor: tool === "eraser" ? "cell" : "crosshair",
               touchAction: "none",
-              WebkitUserSelect: "none", // This handles the selection prevention
-              userSelect: "none",       // This handles the selection prevention
+              WebkitUserSelect: "none",
+              userSelect: "none",
             }}
             onContextMenu={(e) => e.preventDefault()}
             onTouchStart={(e) => {
+              // Only block multi-touch (palm = multiple touch points)
+              // Single touch is still blocked by pointerType check in engine
               if (e.touches.length > 1) e.preventDefault();
             }}
-            // Removed onSelectStart to satisfy TypeScript
+            onSelectStart={(e) => e.preventDefault()}
             {...handlers}
           />
         </div>

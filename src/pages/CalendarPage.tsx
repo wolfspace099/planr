@@ -354,23 +354,25 @@ function AddDropdown({ lessons, calendars }: { lessons: any[]; calendars: any[] 
   }, []);
 
   const items = [
-    { key: "appointment", label: "Afspraak",    icon: CalendarIcon,  color: "text-blue-600" },
-    { key: "homework",    label: t.addHomework, icon: ClipboardList, color: "text-emerald-600" },
-    { key: "task",        label: t.addTask,     icon: CheckSquare,   color: "text-blue-600" },
-    { key: "test",        label: t.addTest,     icon: FlaskConical,  color: "text-purple-600" },
+    { key: "appointment", label: "Afspraak",    icon: CalendarIcon,  color: "text-blue-400" },
+    { key: "homework",    label: t.addHomework, icon: ClipboardList, color: "text-emerald-400" },
+    { key: "task",        label: t.addTask,     icon: CheckSquare,   color: "text-blue-400" },
+    { key: "test",        label: t.addTest,     icon: FlaskConical,  color: "text-purple-400" },
   ] as const;
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition-colors">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10"
+      >
         <Plus size={13} />{t.addToCalendar}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-surface border border-border rounded-xl shadow-modal w-52 py-1.5 animate-slide-up">
+        <div className="absolute right-0 top-full mt-1.5 z-50 bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl w-52 py-1.5 animate-slide-up">
           {items.map(({ key, label, icon: Icon, color }) => (
             <button key={key} onClick={() => { setModal(key); setOpen(false); }}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-ink hover:bg-border/40 transition-colors">
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors">
               <Icon size={14} className={color} />{label}
             </button>
           ))}
@@ -417,28 +419,28 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   const schedule = calendars.filter((c) => c.isSchedule);
 
   const builtIn = [
-    { label: "Lessen",   color: "#6B7280" },
-    { label: "Studie",   color: "#8B5CF6" },
-    { label: "Huiswerk", color: "#10B981" },
-    { label: "Herhaling",color: "#F59E0B" },
+    { label: "Lessen",    color: "#6B7280" },
+    { label: "Studie",    color: "#8B5CF6" },
+    { label: "Huiswerk",  color: "#10B981" },
+    { label: "Herhaling", color: "#F59E0B" },
   ];
 
   return (
-    <div className="w-64 flex-shrink-0 border-r border-border bg-surface/40 flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-border">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Agenda's</p>
+    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto">
+      <div className="px-4 py-3 border-b border-white/[0.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Agenda's</p>
       </div>
 
       {regular.length > 0 && (
         <div className="py-2">
           {regular.map((cal) => (
             <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
-              className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-border/30 transition-colors">
+              className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
               <div className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors"
                 style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
                 {cal.visible && <Check size={8} className="text-white" strokeWidth={3.5} />}
               </div>
-              <span className="text-sm text-ink truncate">{cal.name}</span>
+              <span className="text-sm text-white/70 truncate">{cal.name}</span>
             </button>
           ))}
         </div>
@@ -447,17 +449,17 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
       {schedule.length > 0 && (
         <>
           <div className="px-4 pt-3 pb-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">RRRRooster</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Rooster</p>
           </div>
           <div className="py-1">
             {schedule.map((cal) => (
               <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
-                className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-border/30 transition-colors">
+                className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
                 <div className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 border-2"
                   style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
                   {cal.visible && <Check size={8} className="text-white" strokeWidth={3.5} />}
                 </div>
-                <span className="text-sm text-ink truncate">{cal.name}</span>
+                <span className="text-sm text-white/70 truncate">{cal.name}</span>
               </button>
             ))}
           </div>
@@ -465,7 +467,7 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
       )}
 
       <div className="px-4 pt-3 pb-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Ingebouwd</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Ingebouwd</p>
       </div>
       <div className="py-1 pb-4">
         {builtIn.map((item) => (
@@ -474,7 +476,7 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
               style={{ backgroundColor: item.color, borderColor: item.color }}>
               <Check size={8} className="text-white" strokeWidth={3.5} />
             </div>
-            <span className="text-sm text-ink-muted">{item.label}</span>
+            <span className="text-sm text-white/50">{item.label}</span>
           </div>
         ))}
       </div>
@@ -506,37 +508,39 @@ function StudyPlannerBoard({
   dayBlocks: Record<string, PlannerBlock[]>;
 }) {
   const toneClasses: Record<PlannerBlock["tone"], string> = {
-    test: "border-purple-200 bg-purple-50 text-purple-800",
-    homework: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    study: "border-blue-200 bg-blue-50 text-blue-800",
-    task: "border-amber-200 bg-amber-50 text-amber-800",
+    test:     "border-purple-500/30 bg-purple-500/10 text-purple-300",
+    homework: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    study:    "border-blue-500/30 bg-blue-500/10 text-blue-300",
+    task:     "border-amber-500/30 bg-amber-500/10 text-amber-300",
   };
 
   return (
     <div className="h-full overflow-auto">
-      <div className="min-w-[1080px] rounded-2xl border border-border bg-surface">
-        <div className="grid border-b border-border" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
+      <div className="min-w-[1080px]">
+        {/* Header row */}
+        <div className="grid border-b border-white/[0.06]" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Week focus</p>
-            <p className="mt-1 text-sm font-semibold text-ink">{weekLabel}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Week focus</p>
+            <p className="mt-1 text-sm font-semibold text-white">{weekLabel}</p>
           </div>
           {days.map((day) => (
-            <div key={`header-${day.toISOString()}`} className="border-l border-border px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{format(day, "EEEE")}</p>
-              <p className={clsx("mt-1 text-2xl font-semibold", isToday(day) ? "text-accent" : "text-ink")}>{format(day, "d")}</p>
+            <div key={`header-${day.toISOString()}`} className="border-l border-white/[0.06] px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">{format(day, "EEEE")}</p>
+              <p className={clsx("mt-1 text-2xl font-semibold", isToday(day) ? "text-white" : "text-white/60")}>{format(day, "d")}</p>
             </div>
           ))}
         </div>
 
+        {/* Content rows */}
         <div className="grid min-h-[640px]" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
-          <div className="space-y-3 border-r border-border bg-bg/40 p-4">
+          <div className="space-y-3 border-r border-white/[0.06] p-4">
             {weekFocus.length === 0 ? (
-              <p className="text-sm text-ink-light">No tests or homework due this week.</p>
+              <p className="text-sm text-white/30">No tests or homework due this week.</p>
             ) : (
               weekFocus.map((item) => (
                 <div key={item.id} className={clsx("rounded-xl border p-3", toneClasses[item.tone])}>
                   <p className="text-sm font-semibold leading-tight">{item.title}</p>
-                  <p className="mt-1 text-xs opacity-80">{item.subtitle}</p>
+                  <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
                 </div>
               ))
             )}
@@ -546,14 +550,14 @@ function StudyPlannerBoard({
             const key = format(day, "yyyy-MM-dd");
             const items = dayBlocks[key] ?? [];
             return (
-              <div key={`column-${day.toISOString()}`} className="space-y-3 border-l border-border p-4">
+              <div key={`column-${day.toISOString()}`} className="space-y-3 border-l border-white/[0.06] p-4">
                 {items.length === 0 ? (
-                  <p className="pt-1 text-sm text-ink-light">No blocks planned.</p>
+                  <p className="pt-1 text-sm text-white/30">No blocks planned.</p>
                 ) : (
                   items.map((item) => (
                     <div key={item.id} className={clsx("rounded-xl border p-3.5", toneClasses[item.tone])}>
                       <p className="text-sm font-semibold leading-tight">{item.title}</p>
-                      <p className="mt-1 text-xs opacity-80">{item.subtitle}</p>
+                      <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
                     </div>
                   ))
                 )}
@@ -642,72 +646,42 @@ export default function CalendarPage() {
       const d = new Date(test.date);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `test-${test._id}`,
-        title: test.topic,
-        subtitle: `Test · ${test.subject}`,
-        tone: "test",
-      });
+      blocks[key].push({ id: `test-${test._id}`, title: test.topic, subtitle: `Test · ${test.subject}`, tone: "test" });
     });
 
     (weekHomework ?? []).forEach((hw: any) => {
       const d = new Date(hw.dueDate);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `homework-${hw._id}`,
-        title: hw.title,
-        subtitle: `Homework · ${hw.subject}`,
-        tone: "homework",
-      });
+      blocks[key].push({ id: `homework-${hw._id}`, title: hw.title, subtitle: `Homework · ${hw.subject}`, tone: "homework" });
     });
 
     (weekTasks ?? []).forEach((task: any) => {
       const d = new Date(task.dueDate);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `task-${task._id}`,
-        title: task.title,
-        subtitle: `Task${task.subject ? ` · ${task.subject}` : ""}`,
-        tone: "task",
-      });
+      blocks[key].push({ id: `task-${task._id}`, title: task.title, subtitle: `Task${task.subject ? ` · ${task.subject}` : ""}`, tone: "task" });
     });
 
     (studySessions ?? []).forEach((session: any) => {
       const d = new Date(session.startTime);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `study-${session._id}`,
-        title: session.title,
-        subtitle: `Study · ${format(d, "HH:mm")} - ${format(new Date(session.endTime), "HH:mm")}`,
-        tone: "study",
-      });
+      blocks[key].push({ id: `study-${session._id}`, title: session.title, subtitle: `Study · ${format(d, "HH:mm")} - ${format(new Date(session.endTime), "HH:mm")}`, tone: "study" });
     });
 
     (homeworkSessions ?? []).forEach((session: any) => {
       const d = new Date(session.startTime);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `homework-session-${session._id}`,
-        title: session.title,
-        subtitle: `Homework session · ${format(d, "HH:mm")}`,
-        tone: "homework",
-      });
+      blocks[key].push({ id: `homework-session-${session._id}`, title: session.title, subtitle: `Homework session · ${format(d, "HH:mm")}`, tone: "homework" });
     });
 
     (rehearsalSessions ?? []).forEach((session: any) => {
       const d = new Date(session.startTime);
       const key = keyFor(d);
       if (!blocks[key]) return;
-      blocks[key].push({
-        id: `rehearsal-${session._id}`,
-        title: session.title,
-        subtitle: `Rehearsal · ${format(d, "HH:mm")}`,
-        tone: "study",
-      });
+      blocks[key].push({ id: `rehearsal-${session._id}`, title: session.title, subtitle: `Rehearsal · ${format(d, "HH:mm")}`, tone: "study" });
     });
 
     Object.keys(blocks).forEach((dayKey) => {
@@ -761,23 +735,26 @@ export default function CalendarPage() {
         height: Math.max(durationPx(l.startTime, l.endTime), 22),
         node: (
           <Link to={`/lesson/${l._id}`} className="block h-full">
-            <div className={clsx("h-full rounded border border-border bg-surface px-1.5 py-1 flex flex-col gap-0.5 hover:bg-bg hover:border-border-strong transition-colors overflow-hidden", l.isEvent && "border-l-4 border-l-purple-400")}>
+            <div className={clsx(
+              "h-full rounded-md border border-white/10 bg-white/[0.06] px-2 py-1 flex flex-col gap-0.5 hover:bg-white/10 hover:border-white/20 transition-colors overflow-hidden",
+              l.isEvent && "border-l-2 border-l-purple-400"
+            )}>
               <div className="flex items-center justify-between gap-1">
-                <span className="text-[11px] font-semibold text-ink leading-tight truncate">{subjectDisplay(l.subject)}</span>
+                <span className="text-[11px] font-semibold text-white leading-tight truncate">{subjectDisplay(l.subject)}</span>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
-                  {homeworkLessonIds.has(String(l._id)) && <span className="h-2 w-2 rounded-full bg-purple-500 flex-shrink-0" />}
-                  {testLessonIds.has(String(l._id)) && <FlaskConical size={9} className="text-purple-500 flex-shrink-0" />}
+                  {homeworkLessonIds.has(String(l._id)) && <span className="h-1.5 w-1.5 rounded-full bg-purple-400 flex-shrink-0" />}
+                  {testLessonIds.has(String(l._id)) && <FlaskConical size={9} className="text-purple-400 flex-shrink-0" />}
                 </div>
               </div>
-              {period && <span className="text-[9px] text-ink-light leading-none">{period}</span>}
+              {period && <span className="text-[9px] text-white/30 leading-none">{period}</span>}
               {(l.location || l.teachers) && (
-                <span className="text-[9px] text-ink-muted leading-tight flex items-center gap-0.5 truncate">
+                <span className="text-[9px] text-white/40 leading-tight flex items-center gap-0.5 truncate">
                   {l.location && <><MapPin size={7} className="shrink-0" />{l.location}</>}
-                  {l.location && l.teachers && <span className="text-ink-light mx-0.5">·</span>}
+                  {l.location && l.teachers && <span className="text-white/20 mx-0.5">·</span>}
                   {l.teachers && <span className="truncate">{l.teachers}</span>}
                 </span>
               )}
-              <span className="text-[9px] text-ink-light leading-none mt-auto">{format(start, "HH:mm")}–{format(end, "HH:mm")}</span>
+              <span className="text-[9px] text-white/30 leading-none mt-auto">{format(start, "HH:mm")}–{format(end, "HH:mm")}</span>
             </div>
           </Link>
         ),
@@ -805,11 +782,11 @@ export default function CalendarPage() {
         top: toTopPx(start),
         height: Math.max(durationPx(startMs, endMs), 22),
         node: (
-          <div className="h-full rounded border px-1.5 py-1 flex flex-col gap-0.5 overflow-hidden"
-            style={{ backgroundColor: color + "18", borderColor: color + "55", borderLeftColor: color, borderLeftWidth: 3 }}>
+          <div className="h-full rounded-md border px-2 py-1 flex flex-col gap-0.5 overflow-hidden"
+            style={{ backgroundColor: color + "18", borderColor: color + "40", borderLeftColor: color, borderLeftWidth: 2 }}>
             <span className="text-[11px] font-semibold leading-tight truncate" style={{ color }}>{a.title}</span>
-            {a.location && <span className="text-[9px] leading-tight flex items-center gap-0.5 text-ink-muted truncate"><MapPin size={7} className="shrink-0" />{a.location}</span>}
-            <span className="text-[9px] text-ink-light leading-none mt-auto">{format(start, "HH:mm")}</span>
+            {a.location && <span className="text-[9px] leading-tight flex items-center gap-0.5 text-white/40 truncate"><MapPin size={7} className="shrink-0" />{a.location}</span>}
+            <span className="text-[9px] text-white/30 leading-none mt-auto">{format(start, "HH:mm")}</span>
           </div>
         ),
       });
@@ -818,21 +795,21 @@ export default function CalendarPage() {
     (studySessions ?? []).filter((s: any) => isSameDay(new Date(s.startTime), day)).forEach((s: any) => {
       const start = new Date(s.startTime);
       chips.push({ key: `study-${s._id}`, top: toTopPx(start), height: Math.max(durationPx(s.startTime, s.endTime), 22),
-        node: <div className={clsx("h-full rounded border border-purple-200 bg-purple-50/60 px-1.5 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-50")}><div className="flex items-center gap-1"><BookOpen size={8} className="text-purple-500 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-purple-800">{s.title}</span></div><span className="text-[9px] text-purple-600 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
+        node: <div className={clsx("h-full rounded-md border border-purple-500/20 bg-purple-500/10 px-2 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-40")}><div className="flex items-center gap-1"><BookOpen size={8} className="text-purple-400 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-purple-300">{s.title}</span></div><span className="text-[9px] text-purple-400/70 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
       });
     });
 
     (homeworkSessions ?? []).filter((s: any) => isSameDay(new Date(s.startTime), day)).forEach((s: any) => {
       const start = new Date(s.startTime);
       chips.push({ key: `hw-${s._id}`, top: toTopPx(start), height: Math.max(durationPx(s.startTime, s.endTime), 22),
-        node: <div className={clsx("h-full rounded border border-emerald-200 bg-emerald-50/60 px-1.5 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-50")}><div className="flex items-center gap-1"><ClipboardList size={8} className="text-emerald-500 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-emerald-800">{s.title}</span></div><span className="text-[9px] text-emerald-600 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
+        node: <div className={clsx("h-full rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-40")}><div className="flex items-center gap-1"><ClipboardList size={8} className="text-emerald-400 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-emerald-300">{s.title}</span></div><span className="text-[9px] text-emerald-400/70 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
       });
     });
 
     (rehearsalSessions ?? []).filter((s: any) => isSameDay(new Date(s.startTime), day)).forEach((s: any) => {
       const start = new Date(s.startTime);
       chips.push({ key: `reh-${s._id}`, top: toTopPx(start), height: Math.max(durationPx(s.startTime, s.endTime), 22),
-        node: <div className={clsx("h-full rounded border border-amber-200 bg-amber-50/60 px-1.5 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-50")}><div className="flex items-center gap-1"><RefreshCw size={8} className="text-amber-500 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-amber-800">{s.title}</span></div><span className="text-[9px] text-amber-600 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
+        node: <div className={clsx("h-full rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 flex flex-col gap-0.5 overflow-hidden", s.done && "opacity-40")}><div className="flex items-center gap-1"><RefreshCw size={8} className="text-amber-400 flex-shrink-0" /><span className="text-[11px] font-semibold leading-tight truncate text-amber-300">{s.title}</span></div><span className="text-[9px] text-amber-400/70 leading-none mt-auto">{format(start, "HH:mm")}–{format(new Date(s.endTime), "HH:mm")}{s.done && " ✓"}</span></div>
       });
     });
 
@@ -843,47 +820,68 @@ export default function CalendarPage() {
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR);
 
   return (
-    <div className="animate-fade-in flex flex-col h-full overflow-hidden">
-      <PageHeader
-        title={t.rooster}
-        subtitle={`${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
-              <button
-                onClick={() => setViewMode("week")}
-                className={clsx(
-                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "week" ? "bg-accent text-white" : "text-ink-muted hover:text-ink"
-                )}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setViewMode("studyPlanner")}
-                className={clsx(
-                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "studyPlanner" ? "bg-accent text-white" : "text-ink-muted hover:text-ink"
-                )}
-              >
-                Study planner
-              </button>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-                className="rounded-lg p-2 text-ink-muted transition-colors hover:bg-border hover:text-ink"><ChevronLeft size={16} /></button>
-              <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-border">{t.today2}</button>
-              <button onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-                className="rounded-lg p-2 text-ink-muted transition-colors hover:bg-border hover:text-ink"><ChevronRight size={16} /></button>
-            </div>
-            <AddDropdown lessons={allLessons ?? []} calendars={calendars} />
-          </div>
-        }
-      />
+    // Full-height dark shell — matches the deep #0f0f0f background from the screenshot
+    <div className="flex flex-col h-full overflow-hidden bg-[#0f0f0f]">
 
-      <div className="flex flex-1 overflow-hidden rounded-2xl border border-border bg-surface">
-        {/* Calendar side panel — only shown when user has calendars */}
+      {/* ── Top bar ─────────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center justify-between px-5 h-14 border-b border-white/[0.06]">
+        {/* Left: view switcher pill */}
+        <div className="flex items-center gap-1 bg-white/[0.06] rounded-xl p-1 h-9">
+          <button
+            onClick={() => setViewMode("week")}
+            className={clsx(
+              "rounded-lg px-4 h-full text-sm font-medium transition-all",
+              viewMode === "week"
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/40 hover:text-white/70"
+            )}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => setViewMode("studyPlanner")}
+            className={clsx(
+              "rounded-lg px-4 h-full text-sm font-medium transition-all",
+              viewMode === "studyPlanner"
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/40 hover:text-white/70"
+            )}
+          >
+            Study planner
+          </button>
+        </div>
+
+        {/* Right: nav + add */}
+        <div className="flex items-center gap-2">
+          {/* Week navigation */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setWeekStart(subWeeks(weekStart, 1))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+              className="h-8 px-3 rounded-lg border border-white/10 text-xs text-white/50 hover:text-white/80 hover:border-white/20 transition-colors"
+            >
+              {t.today2}
+            </button>
+            <button
+              onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          <AddDropdown lessons={allLessons ?? []} calendars={calendars} />
+        </div>
+      </div>
+
+      {/* ── Main content area ────────────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Calendar side panel */}
         {calendars.length > 0 && <CalendarSidePanel calendars={calendars} />}
 
         {/* Grid area */}
@@ -897,19 +895,33 @@ export default function CalendarPage() {
             />
           ) : (
             <>
-              {/* Day headers */}
-              <div className="overflow-x-auto flex-shrink-0 border-b border-border">
-                <div className="min-w-[900px]">
+              {/* ── Day headers ─────────────────────────────────────────── */}
+              <div className="flex-shrink-0 border-b border-white/[0.06] overflow-x-auto">
+                <div className="min-w-[700px]">
                   <div className="grid" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)` }}>
-                    <div />
+                    {/* GMT label */}
+                    <div className="flex items-end pb-3 pl-2">
+                      <span className="text-[10px] font-medium text-white/20 leading-none">GMT+1</span>
+                    </div>
                     {days.map((day) => (
                       <div key={day.toISOString()} className="py-3 text-center">
-                        <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">{format(day, "EEE")}</p>
-                        <p className={clsx("mx-auto mt-1 flex h-9 w-9 items-center justify-center rounded-full text-lg font-semibold",
-                          isToday(day) ? "bg-accent text-white" : "text-ink")}>{format(day, "d")}</p>
-                        <div className="mt-1 flex min-h-[14px] items-center justify-center gap-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30">
+                          {format(day, "EEE")}
+                        </p>
+                        <p className={clsx(
+                          "mx-auto mt-1.5 flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold tracking-tight",
+                          isToday(day)
+                            ? "bg-white text-[#0f0f0f]"
+                            : "text-white"
+                        )}>
+                          {format(day, "d")}
+                        </p>
+                        {/* All-day row placeholder */}
+                        <div className="mt-2 mx-2 h-[5px] rounded-full bg-white/[0.04]">
                           {weekTests.filter((tt) => isSameDay(new Date(tt.date), day)).map((tt) => (
-                            <span key={tt._id} title={`Toets: ${tt.topic}`}><FlaskConical size={12} className="text-purple-500" /></span>
+                            <span key={tt._id} className="inline-block" title={`Toets: ${tt.topic}`}>
+                              <FlaskConical size={10} className="text-purple-400" />
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -918,16 +930,24 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Scrollable time grid */}
+              {/* ── Scrollable time grid ─────────────────────────────────── */}
               <div ref={scrollRef} className="overflow-y-auto overflow-x-auto flex-1">
-                <div className="min-w-[900px]">
-                  <div className="grid relative" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)`, height: totalGridHeight }}>
-                    {/* Hour labels */}
+                <div className="min-w-[700px]">
+                  <div
+                    className="grid relative"
+                    style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)`, height: totalGridHeight }}
+                  >
+                    {/* Hour labels column */}
                     <div className="relative">
                       {hours.map((h, i) => (
-                        <div key={h} className="absolute w-full flex items-start justify-end pr-2"
-                          style={{ top: i * HOUR_HEIGHT - 8, height: HOUR_HEIGHT }}>
-                          <span className="text-xs text-ink-light font-medium leading-none">{String(h).padStart(2, "0")}:00</span>
+                        <div
+                          key={h}
+                          className="absolute w-full flex items-start justify-end pr-3"
+                          style={{ top: i * HOUR_HEIGHT - 8, height: HOUR_HEIGHT }}
+                        >
+                          <span className="text-[11px] text-white/20 font-medium leading-none tabular-nums">
+                            {String(h).padStart(2, "0")}:00
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -936,30 +956,48 @@ export default function CalendarPage() {
                     {days.map((day, dayIdx) => {
                       const chips = getChipsForDay(day);
                       return (
-                        <div key={day.toISOString()}
-                          className={clsx("relative border-l border-border/30 cursor-pointer group",
-                            dayIdx === 0 && "border-l-0",
-                            isToday(day) && "bg-accent/[0.015]"
+                        <div
+                          key={day.toISOString()}
+                          className={clsx(
+                            "relative cursor-pointer group",
+                            dayIdx !== 0 && "border-l border-white/[0.04]",
+                            isToday(day) && "bg-white/[0.015]"
                           )}
                           style={{ height: totalGridHeight }}
                           onClick={(e) => handleColumnClick(e, day)}
                         >
+                          {/* Hour lines */}
                           {hours.map((h, i) => (
-                            <div key={h} className={clsx("absolute w-full border-t", i === 0 ? "border-border/60" : "border-border/25")}
-                              style={{ top: i * HOUR_HEIGHT }} />
+                            <div
+                              key={h}
+                              className={clsx(
+                                "absolute w-full border-t",
+                                i === 0 ? "border-white/[0.08]" : "border-white/[0.04]"
+                              )}
+                              style={{ top: i * HOUR_HEIGHT }}
+                            />
                           ))}
+                          {/* Half-hour dashed lines */}
                           {hours.map((h, i) => (
-                            <div key={`half-${h}`} className="absolute w-full border-t border-border/10 border-dashed"
-                              style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
+                            <div
+                              key={`half-${h}`}
+                              className="absolute w-full border-t border-white/[0.02] border-dashed"
+                              style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
+                            />
                           ))}
-                          {/* Hover hint overlay */}
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                            <div className="absolute inset-0 bg-accent/[0.03]" />
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150">
+                            <div className="absolute inset-0 bg-white/[0.015]" />
                           </div>
+                          {/* Event chips */}
                           {chips.map((chip) => (
-                            <div key={chip.key} data-event="1" className="absolute px-1"
-                              style={{ top: chip.top, height: chip.height, left: 3, right: 3 }}
-                              onClick={(e) => e.stopPropagation()}>
+                            <div
+                              key={chip.key}
+                              data-event="1"
+                              className="absolute px-0.5"
+                              style={{ top: chip.top, height: chip.height, left: 2, right: 2 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {chip.node}
                             </div>
                           ))}
@@ -968,7 +1006,10 @@ export default function CalendarPage() {
                     })}
 
                     {/* Now line */}
-                    <div className="absolute pointer-events-none" style={{ top: 0, left: TIME_COL_W, right: 0, height: totalGridHeight }}>
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{ top: 0, left: TIME_COL_W, right: 0, height: totalGridHeight }}
+                    >
                       <NowLine days={days} />
                     </div>
                   </div>
@@ -981,8 +1022,10 @@ export default function CalendarPage() {
 
       {/* Click-to-create modal */}
       <CreateAppointmentModal
-        open={createModal !== null} onClose={() => setCreateModal(null)}
-        initialDate={createModal?.date ?? null} initialHour={createModal?.hour ?? 9}
+        open={createModal !== null}
+        onClose={() => setCreateModal(null)}
+        initialDate={createModal?.date ?? null}
+        initialHour={createModal?.hour ?? 9}
         calendars={calendars}
       />
     </div>
