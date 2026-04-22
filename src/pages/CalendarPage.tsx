@@ -430,59 +430,62 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   ];
 
   return (
-    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-white/[0.06]">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Agenda's</p>
+    <div className="w-44 flex-shrink-0 border-r border-white/[0.06] bg-[#0f0f0f] flex flex-col overflow-y-auto">
+      {/* Spacer that matches the day-header height so columns line up */}
+      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06] flex items-end px-4 pb-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/20">Agenda's</p>
       </div>
 
-      {regular.length > 0 && (
-        <div className="py-2">
-          {regular.map((cal) => (
-            <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
-              className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
-              <div className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors"
-                style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
-                {cal.visible && <Check size={8} className="text-white" strokeWidth={3.5} />}
-              </div>
-              <span className="text-sm text-white/70 truncate">{cal.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {schedule.length > 0 && (
-        <>
-          <div className="px-4 pt-3 pb-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Rooster</p>
-          </div>
-          <div className="py-1">
-            {schedule.map((cal) => (
+      <div className="flex-1 overflow-y-auto py-2">
+        {regular.length > 0 && (
+          <div className="pb-2">
+            {regular.map((cal) => (
               <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
                 className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
-                <div className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 border-2"
+                <div className="w-3 h-3 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors"
                   style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
-                  {cal.visible && <Check size={8} className="text-white" strokeWidth={3.5} />}
+                  {cal.visible && <Check size={7} className="text-white" strokeWidth={3.5} />}
                 </div>
-                <span className="text-sm text-white/70 truncate">{cal.name}</span>
+                <span className="text-xs text-white/60 truncate">{cal.name}</span>
               </button>
             ))}
           </div>
-        </>
-      )}
+        )}
 
-      <div className="px-4 pt-3 pb-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Ingebouwd</p>
-      </div>
-      <div className="py-1 pb-4">
-        {builtIn.map((item) => (
-          <div key={item.label} className="flex items-center gap-2.5 px-4 py-1.5">
-            <div className="w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: item.color, borderColor: item.color }}>
-              <Check size={8} className="text-white" strokeWidth={3.5} />
+        {schedule.length > 0 && (
+          <>
+            <div className="px-4 pt-2 pb-1">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/20">Rooster</p>
             </div>
-            <span className="text-sm text-white/50">{item.label}</span>
-          </div>
-        ))}
+            <div className="pb-2">
+              {schedule.map((cal) => (
+                <button key={cal._id} onClick={() => toggleVisible({ id: cal._id })}
+                  className="flex items-center gap-2.5 w-full px-4 py-1.5 hover:bg-white/5 transition-colors">
+                  <div className="w-3 h-3 rounded flex items-center justify-center flex-shrink-0 border-2"
+                    style={{ backgroundColor: cal.visible ? cal.color : "transparent", borderColor: cal.color }}>
+                    {cal.visible && <Check size={7} className="text-white" strokeWidth={3.5} />}
+                  </div>
+                  <span className="text-xs text-white/60 truncate">{cal.name}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="px-4 pt-2 pb-1">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-white/20">Ingebouwd</p>
+        </div>
+        <div className="pb-4">
+          {builtIn.map((item) => (
+            <div key={item.label} className="flex items-center gap-2.5 px-4 py-1.5">
+              <div className="w-3 h-3 rounded border-2 flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: item.color, borderColor: item.color }}>
+                <Check size={7} className="text-white" strokeWidth={3.5} />
+              </div>
+              <span className="text-xs text-white/40">{item.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -622,6 +625,11 @@ function CalendarRightSidebar({
 
   return (
     <aside className="w-52 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col h-full overflow-hidden">
+
+      {/* ── Logo / top spacer — aligns with day headers ───────────────── */}
+      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06] flex items-center px-4">
+        <span className="text-white/80 font-semibold tracking-tight text-sm">planr</span>
+      </div>
 
       {/* ── Week nav ──────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-3 py-3 border-b border-white/[0.06]">

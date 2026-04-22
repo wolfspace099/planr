@@ -7,20 +7,22 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
-  const isFullScreen =
-    location.pathname.startsWith("/calendar") ||
-    location.pathname.startsWith("/ink");
+  // Calendar manages its own navigation sidebar — hide the global one entirely
+  const isCalendar = location.pathname.startsWith("/calendar");
+  const isFullScreen = isCalendar || location.pathname.startsWith("/ink");
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
-      <Sidebar
-        collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((value) => !value)}
-      />
+      {!isCalendar && (
+        <Sidebar
+          collapsed={collapsed}
+          onToggleCollapsed={() => setCollapsed((value) => !value)}
+        />
+      )}
 
       <main
         className={clsx(
-          collapsed ? "ml-16" : "ml-56",
+          !isCalendar && (collapsed ? "ml-16" : "ml-56"),
           "flex-1 transition-all duration-200",
           isFullScreen ? "overflow-hidden" : "overflow-y-auto"
         )}
