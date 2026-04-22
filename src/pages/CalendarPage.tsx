@@ -10,13 +10,14 @@ import {
   ChevronLeft, ChevronRight, MapPin, FlaskConical, BookOpen,
   ClipboardList, RefreshCw, Plus, X, ClipboardCheck, CheckSquare,
   Check, Calendar as CalendarIcon,
+  LayoutDashboard, Repeat2, CalendarClock, GraduationCap, Settings,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { PageHeader, Modal, Input, Textarea, Button } from "../components/ui/primitives";
 import { useLang } from "../i18n";
 import clsx from "clsx";
 
-const HOUR_HEIGHT = 56;
+const HOUR_HEIGHT = 68;
 const START_HOUR  = 7;
 const END_HOUR    = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -339,7 +340,7 @@ function AddTestModal({ open, onClose, lessons }: { open: boolean; onClose: () =
 }
 
 // ─── + Dropdown Button ──────────────────────────────────────────────────────
-function AddDropdown({ lessons, calendars }: { lessons: any[]; calendars: any[] }) {
+function AddDropdown({ lessons, calendars, fullWidth }: { lessons: any[]; calendars: any[]; fullWidth?: boolean }) {
   const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<"homework" | "task" | "test" | "appointment" | null>(null);
@@ -364,7 +365,10 @@ function AddDropdown({ lessons, calendars }: { lessons: any[]; calendars: any[] 
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10"
+        className={clsx(
+          "flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10",
+          fullWidth && "w-full justify-center"
+        )}
       >
         <Plus size={13} />{t.addToCalendar}
       </button>
@@ -426,8 +430,8 @@ function CalendarSidePanel({ calendars }: { calendars: any[] }) {
   ];
 
   return (
-    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto bg-[#111111]">
-      <div className="px-4 py-3 border-b border-white/[0.08]">
+    <div className="w-48 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto">
+      <div className="px-4 py-3 border-b border-white/[0.06]">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Agenda's</p>
       </div>
 
@@ -567,6 +571,156 @@ function StudyPlannerBoard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Calendar Right Sidebar ──────────────────────────────────────────────────
+function CalendarRightSidebar({
+  weekStart,
+  setWeekStart,
+  viewMode,
+  setViewMode,
+  lessons,
+  calendars,
+}: {
+  weekStart: Date;
+  setWeekStart: (d: Date) => void;
+  viewMode: CalendarViewMode;
+  setViewMode: (v: CalendarViewMode) => void;
+  lessons: any[];
+  calendars: any[];
+}) {
+  const { t } = useLang();
+  const location = useLocation();
+
+  const navSections = [
+    {
+      label: t.planner,
+      items: [
+        { label: t.today, to: "/", icon: LayoutDashboard, exact: true },
+        { label: t.calendar, to: "/calendar", icon: CalendarIcon },
+        { label: t.notebook, to: "/notebook", icon: BookOpen },
+      ],
+    },
+    {
+      label: t.school,
+      items: [
+        { label: t.homework, to: "/homework", icon: ClipboardList },
+        { label: t.tasks,    to: "/tasks",    icon: CheckSquare },
+        { label: t.tests,    to: "/tests",    icon: FlaskConical },
+        { label: t.study,    to: "/study",    icon: GraduationCap },
+        { label: t.habits,   to: "/habits",   icon: Repeat2 },
+        { label: t.appointments, to: "/appointments", icon: CalendarClock },
+      ],
+    },
+  ];
+
+  const weekLabel = `${format(weekStart, "d MMM")} – ${format(
+    endOfWeek(weekStart, { weekStartsOn: 1 }),
+    "d MMM"
+  )}`;
+
+  return (
+    <aside className="w-52 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col h-full overflow-hidden">
+
+      {/* ── Week nav ──────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-3 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={() => setWeekStart(subWeeks(weekStart, 1))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <button
+            onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+            className="text-[11px] font-medium text-white/40 hover:text-white/80 transition-colors tabular-nums"
+          >
+            {weekLabel}
+          </button>
+          <button
+            onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-white/[0.05] rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode("week")}
+            className={clsx(
+              "flex-1 rounded-md py-1 text-[11px] font-medium transition-all",
+              viewMode === "week" ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60"
+            )}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => setViewMode("studyPlanner")}
+            className={clsx(
+              "flex-1 rounded-md py-1 text-[11px] font-medium transition-all",
+              viewMode === "studyPlanner" ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60"
+            )}
+          >
+            Studie
+          </button>
+        </div>
+      </div>
+
+      {/* ── Add button ────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-3 py-2.5 border-b border-white/[0.06]">
+        <AddDropdown lessons={lessons} calendars={calendars} fullWidth />
+      </div>
+
+      {/* ── Nav links ─────────────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-3">
+        {navSections.map((section) => (
+          <div key={section.label} className="space-y-0.5">
+            <div className="px-2 pb-1 text-[9px] uppercase tracking-wider text-white/20 font-semibold">
+              {section.label}
+            </div>
+            {section.items.map(({ label, to, icon: Icon, exact }) => {
+              const active = exact
+                ? location.pathname === to
+                : location.pathname.startsWith(to);
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={clsx(
+                    "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] transition-colors",
+                    active
+                      ? "bg-white/10 text-white"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                  )}
+                >
+                  <Icon size={13} strokeWidth={1.75} />
+                  <span className="truncate">{label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* ── Settings ──────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-3 py-3 border-t border-white/[0.06]">
+        <NavLink
+          to="/settings"
+          className={clsx(
+            "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] transition-colors w-full",
+            location.pathname === "/settings"
+              ? "bg-white/10 text-white"
+              : "text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
+          )}
+        >
+          <Settings size={13} strokeWidth={1.75} />
+          <span>Instellingen</span>
+        </NavLink>
+      </div>
+    </aside>
   );
 }
 
@@ -820,71 +974,14 @@ export default function CalendarPage() {
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR);
 
   return (
-    // Full-height dark shell — matches the deep #0f0f0f background from the screenshot
     <div className="flex flex-col h-full overflow-hidden bg-[#0f0f0f]">
-
-      {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 h-14 border-b border-white/[0.08] bg-[#161616]">
-        {/* Left: view switcher pill */}
-        <div className="flex items-center gap-1 bg-white/[0.06] rounded-xl p-1 h-9">
-          <button
-            onClick={() => setViewMode("week")}
-            className={clsx(
-              "rounded-lg px-4 h-full text-sm font-medium transition-all",
-              viewMode === "week"
-                ? "bg-white/10 text-white shadow-sm"
-                : "text-white/40 hover:text-white/70"
-            )}
-          >
-            Week
-          </button>
-          <button
-            onClick={() => setViewMode("studyPlanner")}
-            className={clsx(
-              "rounded-lg px-4 h-full text-sm font-medium transition-all",
-              viewMode === "studyPlanner"
-                ? "bg-white/10 text-white shadow-sm"
-                : "text-white/40 hover:text-white/70"
-            )}
-          >
-            Study planner
-          </button>
-        </div>
-
-        {/* Right: nav + add */}
-        <div className="flex items-center gap-2">
-          {/* Week navigation */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-              className="h-8 px-3 rounded-lg border border-white/10 text-xs text-white/50 hover:text-white/80 hover:border-white/20 transition-colors"
-            >
-              {t.today2}
-            </button>
-            <button
-              onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <AddDropdown lessons={allLessons ?? []} calendars={calendars} />
-        </div>
-      </div>
 
       {/* ── Main content area ────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Left calendar side panel — always visible */}
+        {/* Left: calendar toggles panel */}
         <CalendarSidePanel calendars={calendars} />
 
-        {/* Grid area */}
+        {/* Centre: grid */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           {viewMode === "studyPlanner" ? (
             <StudyPlannerBoard
@@ -899,7 +996,6 @@ export default function CalendarPage() {
               <div className="flex-shrink-0 border-b border-white/[0.08] overflow-x-auto bg-[#161616]">
                 <div className="min-w-[700px]">
                   <div className="grid" style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)` }}>
-                    {/* GMT label */}
                     <div className="flex items-end pb-3 pl-2">
                       <span className="text-[10px] font-medium text-white/20 leading-none">GMT+1</span>
                     </div>
@@ -910,13 +1006,10 @@ export default function CalendarPage() {
                         </p>
                         <p className={clsx(
                           "mx-auto mt-1.5 flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold tracking-tight",
-                          isToday(day)
-                            ? "bg-white text-[#0f0f0f]"
-                            : "text-white"
+                          isToday(day) ? "bg-white text-[#0f0f0f]" : "text-white"
                         )}>
                           {format(day, "d")}
                         </p>
-                        {/* All-day row placeholder */}
                         <div className="mt-2 mx-2 h-[5px] rounded-full bg-white/[0.04]">
                           {weekTests.filter((tt) => isSameDay(new Date(tt.date), day)).map((tt) => (
                             <span key={tt._id} className="inline-block" title={`Toets: ${tt.topic}`}>
@@ -937,7 +1030,6 @@ export default function CalendarPage() {
                     className="grid relative"
                     style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(5, 1fr)`, height: totalGridHeight }}
                   >
-                    {/* Hour labels column */}
                     <div className="relative">
                       {hours.map((h, i) => (
                         <div
@@ -952,7 +1044,6 @@ export default function CalendarPage() {
                       ))}
                     </div>
 
-                    {/* Day columns */}
                     {days.map((day, dayIdx) => {
                       const chips = getChipsForDay(day);
                       return (
@@ -966,7 +1057,6 @@ export default function CalendarPage() {
                           style={{ height: totalGridHeight }}
                           onClick={(e) => handleColumnClick(e, day)}
                         >
-                          {/* Hour lines */}
                           {hours.map((h, i) => (
                             <div
                               key={h}
@@ -977,7 +1067,6 @@ export default function CalendarPage() {
                               style={{ top: i * HOUR_HEIGHT }}
                             />
                           ))}
-                          {/* Half-hour dashed lines */}
                           {hours.map((h, i) => (
                             <div
                               key={`half-${h}`}
@@ -985,11 +1074,9 @@ export default function CalendarPage() {
                               style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
                             />
                           ))}
-                          {/* Hover overlay */}
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150">
                             <div className="absolute inset-0 bg-white/[0.015]" />
                           </div>
-                          {/* Event chips */}
                           {chips.map((chip) => (
                             <div
                               key={chip.key}
@@ -1005,7 +1092,6 @@ export default function CalendarPage() {
                       );
                     })}
 
-                    {/* Now line */}
                     <div
                       className="absolute pointer-events-none"
                       style={{ top: 0, left: TIME_COL_W, right: 0, height: totalGridHeight }}
@@ -1019,15 +1105,17 @@ export default function CalendarPage() {
           )}
         </div>
 
-        {/* Right side panel */}
-        <div className="w-12 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col items-center py-3 gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-          <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-        </div>
+        {/* Right: nav + controls sidebar */}
+        <CalendarRightSidebar
+          weekStart={weekStart}
+          setWeekStart={setWeekStart}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          lessons={allLessons ?? []}
+          calendars={calendars}
+        />
       </div>
 
-      {/* Click-to-create modal */}
       <CreateAppointmentModal
         open={createModal !== null}
         onClose={() => setCreateModal(null)}
