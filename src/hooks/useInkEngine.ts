@@ -46,12 +46,10 @@ export interface InkEngineActions {
   importStrokes: (strokes: Stroke[]) => void;
 }
 
-export interface PointerHandlers {
-  onPointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void;
-  onPointerMove: (e: React.PointerEvent<HTMLCanvasElement>) => void;
-  onPointerUp: (e: React.PointerEvent<HTMLCanvasElement>) => void;
-  onPointerLeave: (e: React.PointerEvent<HTMLCanvasElement>) => void;
-}
+export type PointerHandlers = Pick<
+  React.CanvasHTMLAttributes<HTMLCanvasElement>,
+  "onPointerDown" | "onPointerMove" | "onPointerUp" | "onPointerLeave"
+>;
 
 // ─── Perfect Freehand options per tool ───────────────────────────────────────
 function getFreehandOptions(tool: Tool, size: number) {

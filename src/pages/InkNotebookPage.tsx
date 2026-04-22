@@ -137,8 +137,6 @@ export default function InkNotebookPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [actions]);
 
-  const { onSelectStart: _onSelectStart, ...handlers } = actions.getCanvasHandlers(canvasRef.current);
-
   const colorOptions = tool === "highlighter" ? HIGHLIGHTER_COLORS : PEN_COLORS;
 
   return (
@@ -318,8 +316,7 @@ export default function InkNotebookPage() {
               // Single touch is still blocked by pointerType check in engine
               if (e.touches.length > 1) e.preventDefault();
             }}
-            onSelectStart={(e) => e.preventDefault()}
-            {...handlers}
+              {...actions.getCanvasHandlers(canvasRef.current)}
           />
         </div>
 
