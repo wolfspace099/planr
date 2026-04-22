@@ -952,21 +952,17 @@ export default function CalendarPage() {
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#0f0f0f]">
+    <div className="flex flex-col h-full bg-[#0f0f0f] p-4">
 
-      {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <CalendarTopBar
-        weekStart={weekStart}
-        setWeekStart={setWeekStart}
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-      />
+      <div className="flex flex-col flex-1 min-h-0 rounded-2xl overflow-hidden border border-white/[0.06] bg-[#111111] shadow-2xl">
+        <CalendarTopBar
+          weekStart={weekStart}
+          setWeekStart={setWeekStart}
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+        />
 
-      {/* ── Main content area ────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        <CalendarSidePanel calendars={calendars} />
-
-        <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+        <div className="flex flex-1 overflow-hidden min-h-0">
           {viewMode === "studyPlanner" ? (
             <StudyPlannerBoard
               days={days}
@@ -1089,7 +1085,6 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
-
       <CreateAppointmentModal
         open={createModal !== null}
         onClose={() => setCreateModal(null)}
