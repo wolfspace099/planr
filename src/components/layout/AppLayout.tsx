@@ -16,7 +16,7 @@ export default function AppLayout() {
       {/* <Sidebar
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
-      /> */}
+      
 
       <main
         className={clsx(
@@ -33,6 +33,7 @@ export default function AppLayout() {
           </div>
         )}
       </main>
+      /> */}
     </div>
   );
 }
