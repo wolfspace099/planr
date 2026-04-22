@@ -666,7 +666,7 @@ function CalendarTopBar({
 
       {/* Week nav — right side */}
       <div className="flex items-center gap-1.5 w-44 flex-shrink-0 justify-end">
-        <span className="text-[12px] font-semibold text-white/50 tabular-nums mr-1">
+        <span className="text-[12px] font-semibold text-white/50 tabular-nums mr-2 whitespace-nowrap">
           Week {weekNumber}
         </span>
         <button
@@ -675,114 +675,22 @@ function CalendarTopBar({
         >
           <ChevronLeft size={14} />
         </button>
+
+        <button
+          onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+          className="h-7 px-2.5 rounded-md border border-white/[0.12] text-[11px] font-medium text-white/50 hover:text-white/80 hover:border-white/25 transition-colors whitespace-nowrap"
+        >
+          {t.today2}
+        </button>
+
         <button
           onClick={() => setWeekStart(addWeeks(weekStart, 1))}
           className="w-7 h-7 flex items-center justify-center rounded-md text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors"
         >
           <ChevronRight size={14} />
         </button>
-        <button
-          onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-          className="h-7 px-2.5 rounded-md border border-white/[0.12] text-[11px] font-medium text-white/50 hover:text-white/80 hover:border-white/25 transition-colors"
-        >
-          {t.today2}
-        </button>
       </div>
     </div>
-  );
-}
-
-// ─── Calendar Right Sidebar ──────────────────────────────────────────────────
-function CalendarRightSidebar({
-  lessons,
-  calendars,
-}: {
-  lessons: any[];
-  calendars: any[];
-}) {
-  const { t } = useLang();
-  const location = useLocation();
-
-  const navSections = [
-    {
-      label: t.planner,
-      items: [
-        { label: t.today, to: "/", icon: LayoutDashboard, exact: true },
-        { label: t.calendar, to: "/calendar", icon: CalendarIcon },
-        { label: t.notebook, to: "/notebook", icon: BookOpen },
-      ],
-    },
-    {
-      label: t.school,
-      items: [
-        { label: t.homework, to: "/homework", icon: ClipboardList },
-        { label: t.tasks,    to: "/tasks",    icon: CheckSquare },
-        { label: t.tests,    to: "/tests",    icon: FlaskConical },
-        { label: t.study,    to: "/study",    icon: GraduationCap },
-        { label: t.habits,   to: "/habits",   icon: Repeat2 },
-        { label: t.appointments, to: "/appointments", icon: CalendarClock },
-      ],
-    },
-  ];
-
-  return (
-    <aside className="w-52 flex-shrink-0 border-l border-white/[0.06] bg-[#111111] flex flex-col h-full overflow-hidden">
-
-      {/* ── Spacer that aligns with day-header row ────────────────────── */}
-      <div className="flex-shrink-0 h-[88px] border-b border-white/[0.06]" />
-
-      {/* ── Add button ────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-3 py-2.5 border-b border-white/[0.06]">
-        <AddDropdown lessons={lessons} calendars={calendars} fullWidth />
-      </div>
-
-      {/* ── Nav links ─────────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-3">
-        {navSections.map((section) => (
-          <div key={section.label} className="space-y-0.5">
-            <div className="px-2 pb-1 text-[9px] uppercase tracking-wider text-white/20 font-semibold">
-              {section.label}
-            </div>
-            {section.items.map(({ label, to, icon: Icon, exact }) => {
-              const active = exact
-                ? location.pathname === to
-                : location.pathname.startsWith(to);
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={clsx(
-                    "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] transition-colors",
-                    active
-                      ? "bg-white/10 text-white"
-                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
-                  )}
-                >
-                  <Icon size={13} strokeWidth={1.75} />
-                  <span className="truncate">{label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
-
-      {/* ── Settings ──────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-3 py-3 border-t border-white/[0.06]">
-        <NavLink
-          to="/settings"
-          className={clsx(
-            "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] transition-colors w-full",
-            location.pathname === "/settings"
-              ? "bg-white/10 text-white"
-              : "text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
-          )}
-        >
-          <Settings size={13} strokeWidth={1.75} />
-          <span>Instellingen</span>
-        </NavLink>
-      </div>
-    </aside>
   );
 }
 
@@ -1056,10 +964,8 @@ export default function CalendarPage() {
 
       {/* ── Main content area ────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Left: calendar toggles panel */}
         <CalendarSidePanel calendars={calendars} />
 
-        {/* Centre: grid */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           {viewMode === "studyPlanner" ? (
             <StudyPlannerBoard
@@ -1182,12 +1088,6 @@ export default function CalendarPage() {
             </>
           )}
         </div>
-
-        {/* Right: nav sidebar */}
-        <CalendarRightSidebar
-          lessons={allLessons ?? []}
-          calendars={calendars}
-        />
       </div>
 
       <CreateAppointmentModal
