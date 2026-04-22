@@ -339,7 +339,17 @@ export const syncCalendar = action({
     if (!school) throw new Error("Missing school name.");
 
     const persistedToken = normalizeString(settings?.zermeloAccessToken);
-    let activeToken = persistedToken || normalizeString(parsed?.accessToken);
+    const parsedToken = normalizeString(parsed?.accessToken);
+
+    let activeToken = persistedToken || parsedToken;
+
+    if (!activeToken) {
+      return {
+        count: 0,
+        week: toIsoWeekString(new Date(args.weekStartMs ?? Date.now())),
+        skipped: true,
+      };
+    }
 
     const inputUsername = normalizeString(args.zermeloUsername) || normalizeString(settings?.zermeloUsername);
     const inputPassword = normalizeString(args.zermeloPassword);
@@ -352,6 +362,10 @@ export const syncCalendar = action({
     const parsedStudent = parsed?.student ?? "~me";
     const weekCenter = new Date(args.weekStartMs ?? Date.now());
     const weeksToFetch = Array.from({ length: 9 }, (_, i) => toIsoWeekString(addWeeks(weekCenter, i - 4)));
+
+    if (!activeToken || activeToken.length < 10) {
+      throw new Error("Missing or invalid Zermelo token");
+    }
 
     const fetchWeekPayload = async (week: string) => {
       const buildEndpoint = () => {
@@ -369,9 +383,7 @@ export const syncCalendar = action({
       });
 
       if (response.status === 401) {
-        const queryEndpoint = buildEndpoint();
-        queryEndpoint.searchParams.set("access_token", activeToken);
-        response = await fetch(queryEndpoint.toString());
+        throw new Error("Zermelo session expired. Re-login required.");
       }
 
       if (response.status === 401 && parsed?.accessToken && !looksLikeAccessToken(parsed.accessToken)) {
