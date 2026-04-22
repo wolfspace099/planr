@@ -434,7 +434,7 @@ function StudyPlannerBoard({
   weekFocus,
   dayBlocks,
 }: {
-  days: Date[];
+  days: Date[]; // now expects 20 dates (4 weeks × 5 days)
   weekLabel: string;
   weekFocus: PlannerBlock[];
   dayBlocks: Record<string, PlannerBlock[]>;
@@ -448,29 +448,56 @@ function StudyPlannerBoard({
 
   return (
     <div className="h-full overflow-auto">
-      <div className="min-w-[1080px]">
-        {/* Header row */}
-        <div className="grid border-b border-white/[0.06]" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
+      <div className="min-w-[2400px]">
+        {/* Header */}
+        <div
+          className="grid border-b border-white/[0.06]"
+          style={{ gridTemplateColumns: "280px repeat(20, minmax(0, 1fr))" }}
+        >
           <div className="px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Week focus</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
+              Week focus
+            </p>
             <p className="mt-1 text-sm font-semibold text-white">{weekLabel}</p>
           </div>
+
           {days.map((day) => (
-            <div key={`header-${day.toISOString()}`} className="border-l border-white/[0.06] px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">{format(day, "EEEE")}</p>
-              <p className={clsx("mt-1 text-2xl font-semibold", isToday(day) ? "text-white" : "text-white/60")}>{format(day, "d")}</p>
+            <div
+              key={`header-${day.toISOString()}`}
+              className="border-l border-white/[0.06] px-5 py-4"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
+                {format(day, "EEE")}
+              </p>
+              <p
+                className={clsx(
+                  "mt-1 text-2xl font-semibold",
+                  isToday(day) ? "text-white" : "text-white/60"
+                )}
+              >
+                {format(day, "d")}
+              </p>
             </div>
           ))}
         </div>
 
-        {/* Content rows */}
-        <div className="grid min-h-[640px]" style={{ gridTemplateColumns: "280px repeat(5, minmax(0, 1fr))" }}>
+        {/* Content */}
+        <div
+          className="grid min-h-[640px]"
+          style={{ gridTemplateColumns: "280px repeat(20, minmax(0, 1fr))" }}
+        >
+          {/* Focus column */}
           <div className="space-y-3 border-r border-white/[0.06] p-4">
             {weekFocus.length === 0 ? (
-              <p className="text-sm text-white/30">No tests or homework due this week.</p>
+              <p className="text-sm text-white/30">
+                No tests or homework due this period.
+              </p>
             ) : (
               weekFocus.map((item) => (
-                <div key={item.id} className={clsx("rounded-xl border p-3", toneClasses[item.tone])}>
+                <div
+                  key={item.id}
+                  className={clsx("rounded-xl border p-3", toneClasses[item.tone])}
+                >
                   <p className="text-sm font-semibold leading-tight">{item.title}</p>
                   <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
                 </div>
@@ -478,16 +505,24 @@ function StudyPlannerBoard({
             )}
           </div>
 
+          {/* 4-week day columns */}
           {days.map((day) => {
             const key = format(day, "yyyy-MM-dd");
             const items = dayBlocks[key] ?? [];
+
             return (
-              <div key={`column-${day.toISOString()}`} className="space-y-3 border-l border-white/[0.06] p-4">
+              <div
+                key={`column-${day.toISOString()}`}
+                className="space-y-3 border-l border-white/[0.06] p-4"
+              >
                 {items.length === 0 ? (
                   <p className="pt-1 text-sm text-white/30">No blocks planned.</p>
                 ) : (
                   items.map((item) => (
-                    <div key={item.id} className={clsx("rounded-xl border p-3.5", toneClasses[item.tone])}>
+                    <div
+                      key={item.id}
+                      className={clsx("rounded-xl border p-3.5", toneClasses[item.tone])}
+                    >
                       <p className="text-sm font-semibold leading-tight">{item.title}</p>
                       <p className="mt-1 text-xs opacity-70">{item.subtitle}</p>
                     </div>
