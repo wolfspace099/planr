@@ -1,4 +1,11 @@
-import { format } from "date-fns"
+import {
+  addWeeks,
+  eachDayOfInterval,
+  endOfWeek,
+  format,
+  getISOWeek,
+  startOfWeek,
+} from "date-fns"
 import clsx from "clsx"
 import { useMemo, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
@@ -14,12 +21,10 @@ export type PlannerBlock = {
 }
 
 export function StudyPlannerBoard({
-  days,
-  startWeek = 0,
+  weekStart,
   visibleWeeks = 4,
 }: {
-  days: Date[]
-  startWeek?: number
+  weekStart: Date
   visibleWeeks?: number
 }) {
   const homework = useQuery(api.homework.getAll)
@@ -34,10 +39,10 @@ export function StudyPlannerBoard({
   const [description, setDescription] = useState("")
 
   const toneClasses: Record<PlannerBlock["tone"], string> = {
-    test: "border-purple-500/30 bg-purple-500/10 text-purple-300",
-    homework: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-    study: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-    task: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    test: "border-l-orange-400/90",
+    homework: "border-l-blue-400/90",
+    study: "border-l-emerald-400/90",
+    task: "border-l-violet-400/90",
   }
 
   const dayBlocks: Record<string, PlannerBlock[]> = useMemo(() => {
@@ -59,24 +64,13 @@ export function StudyPlannerBoard({
     return map
   }, [homework])
 
-  const lessonsByDay = useMemo(() => {
-    return (lessons ?? [])
-      .slice()
-      .sort((a: any, b: any) => a.startTime - b.startTime)
-      .reduce((acc: Record<string, any[]>, lesson: any) => {
-        const day = format(new Date(lesson.startTime), "EEEE d MMM")
-        if (!acc[day]) acc[day] = []
-        acc[day].push(lesson)
-        return acc
-      }, {})
-  }, [lessons])
-
-  const allWeeks: Date[][] = []
-  for (let i = 0; i < days.length; i += 5) {
-    allWeeks.push(days.slice(i, i + 5))
-  }
-
-  const weeks = allWeeks.slice(startWeek, startWeek + visibleWeeks)
+  const weeks = useMemo(() => {
+    return Array.from({ length: visibleWeeks }, (_, index) => {
+      const start = startOfWeek(addWeeks(weekStart, index), { weekStartsOn: 1 })
+      const end = endOfWeek(start, { weekStartsOn: 1 })
+      return eachDayOfInterval({ start, end }).slice(0, 5)
+    })
+  }, [visibleWeeks, weekStart])
 
   const submit = async () => {
     if (!title.trim() || !selectedLesson) return
@@ -97,10 +91,10 @@ export function StudyPlannerBoard({
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="min-w-[1100px]">
+      <div className="min-w-[1200px]">
         <div className="sticky top-0 z-20 bg-black/80 backdrop-blur border-b border-white/[0.08] flex justify-between px-4 py-3">
           <div className="text-white font-semibold">
-            {weeks[0]?.[0] ? format(weeks[0][0], "MMMM yyyy") : ""}
+            {format(weekStart, "MMMM yyyy")}
           </div>
 
           <button
@@ -111,22 +105,57 @@ export function StudyPlannerBoard({
           </button>
         </div>
 
-        <div
-          className="grid gap-4 p-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          }}
-        >
-          {weeks.map((weekDays, weekIndex) => (
-            <div
-              key={weekIndex}
-              className="border border-white/[0.08] rounded-lg overflow-hidden"
-            >
-              <div className="px-3 py-2 border-b border-white/[0.06] text-sm font-semibold text-white">
-                Week {startWeek + weekIndex + 1}
-              </div>
+        <div className="border-t border-white/[0.08]">
+          {weeks.map((weekDays) => {
+            const weekNumber = getISOWeek(weekDays[0])
+            const weekItems = weekDays.flatMap((day) => {
+              const dayKey = format(day, "yyyy-MM-dd")
+              return (dayBlocks[dayKey] ?? []).map((item) => ({
+                ...item,
+                dueDate: day,
+              }))
+            })
 
-              <div className="grid grid-cols-5">
+            return (
+              <div
+                key={weekDays[0].toISOString()}
+                className="grid border-b border-white/[0.08]"
+                style={{ gridTemplateColumns: "260px repeat(5, minmax(0, 1fr))" }}
+              >
+                <div className="border-r border-white/[0.08] p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[24px] font-semibold text-white/75 leading-none">
+                      Weektaken
+                    </p>
+                    <p className="text-[14px] text-white/35 whitespace-nowrap">
+                      Week {weekNumber}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 space-y-1.5">
+                    {weekItems.length === 0 ? (
+                      <p className="text-xs text-white/25">Geen weektaken</p>
+                    ) : (
+                      weekItems.map((item) => (
+                        <div
+                          key={`${item.id}-${item.dueDate.toISOString()}`}
+                          className={clsx(
+                            "rounded-md border border-white/[0.14] bg-[#28313a]/70 border-l-[3px] px-3 py-2",
+                            toneClasses[item.tone]
+                          )}
+                        >
+                          <p className="text-[12px] font-semibold text-white leading-tight truncate">
+                            {item.title}
+                          </p>
+                          <p className="text-[11px] text-white/65 truncate">
+                            {item.subtitle} | {format(item.dueDate, "EEE d")}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 {weekDays.map((day) => {
                   const key = format(day, "yyyy-MM-dd")
                   const items = dayBlocks[key] ?? []
@@ -134,25 +163,25 @@ export function StudyPlannerBoard({
                   return (
                     <div
                       key={key}
-                      className="p-2 border-l first:border-l-0 border-white/[0.06] min-h-[140px]"
+                      className="border-r last:border-r-0 border-white/[0.08] px-3 py-3 min-h-[230px] bg-[#111821]"
                     >
-                      <p className="text-xs text-white/40 mb-2">
+                      <p className="text-sm font-semibold text-white/80">
                         {format(day, "d")}
                       </p>
 
-                      <div className="space-y-2">
+                      <div className="mt-2 space-y-1.5">
                         {items.map((item) => (
                           <div
                             key={item.id}
                             className={clsx(
-                              "rounded-lg border p-2",
+                              "rounded-md border border-white/[0.14] bg-[#28313a]/85 border-l-[3px] px-3 py-2",
                               toneClasses[item.tone]
                             )}
                           >
-                            <p className="text-xs font-semibold">
+                            <p className="text-[12px] font-semibold text-white leading-tight truncate">
                               {item.title}
                             </p>
-                            <p className="text-[10px] opacity-70">
+                            <p className="text-[11px] text-white/65 truncate">
                               {item.subtitle}
                             </p>
                           </div>
@@ -162,8 +191,8 @@ export function StudyPlannerBoard({
                   )
                 })}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {modal && (

@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import {
-  startOfWeek, endOfWeek, eachDayOfInterval,
-} from "date-fns";
+import { startOfWeek } from "date-fns";
 import { StudyPlannerBoard } from "../components/pages/calendar/StudyPlannerBoard";
 
 import { CreateAppointmentCard } from "../components/pages/calendar/CreateAppointmentCard";
@@ -27,8 +25,6 @@ export default function CalendarPage() {
     if (tab === "studyPlanner") setViewMode("studyPlanner");
   };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd }).slice(0, 5);
 
   const settings     = useQuery(api.userSettings.get);
   const syncCalendar = useAction(api.ical.syncCalendar);
@@ -73,12 +69,10 @@ export default function CalendarPage() {
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           {viewMode === "studyPlanner" ? (
             <StudyPlannerBoard
-              days={days}
+              weekStart={weekStart}
             />
           ) : (
-            <>
-              <Calendar />
-            </>
+            <Calendar weekStart={weekStart} />
           )}
         </div>
       </div>

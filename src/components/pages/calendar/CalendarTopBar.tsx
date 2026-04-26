@@ -1,6 +1,10 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { addWeeks, getISOWeek, startOfWeek, subWeeks } from "date-fns";
+import { UserButton } from "@clerk/clerk-react";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { addWeeks, endOfWeek, format, getISOWeek, isSameMonth, startOfWeek, subWeeks } from "date-fns";
+import { enUS, nl } from "date-fns/locale";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { useLang } from "../../../i18n";
 
 export type CalendarTab = "calendar" | "studyPlanner" | "grades" | "messages" | "notebook";
@@ -11,8 +15,36 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
   activeTab: CalendarTab;
   setActiveTab: (t: CalendarTab) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const weekNumber = getISOWeek(weekStart);
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  const dateLocale = lang === "nl" ? nl : enUS;
+  const monthLabel = isSameMonth(weekStart, weekEnd)
+    ? format(weekStart, "LLLL", { locale: dateLocale })
+    : `${format(weekStart, "LLL", { locale: dateLocale })}/${format(weekEnd, "LLL", { locale: dateLocale })}`;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onMouseDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const tabs: { key: CalendarTab; label: string; icon: React.ReactNode }[] = [
     {
@@ -64,9 +96,50 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
     },
   ];
 
+  const menuLinks = [
+    { to: "/", label: t.today },
+    { to: "/calendar", label: t.calendar },
+    { to: "/notebook", label: t.notebook },
+    { to: "/homework", label: t.homework },
+    { to: "/tasks", label: t.tasks },
+    { to: "/tests", label: t.tests },
+    { to: "/study", label: t.study },
+    { to: "/habits", label: t.habits },
+    { to: "/appointments", label: t.appointments },
+    { to: "/settings", label: t.settings },
+  ];
+
   return (
-    <div className="flex-shrink-0 flex items-center h-11 bg-[#111111] border-b border-white/[0.07] px-4 gap-4">
-      <span className="text-white font-semibold tracking-tight text-sm w-44 flex-shrink-0">planr</span>
+    <div className="flex-shrink-0 flex items-center h-14 bg-[#111111] border-b border-white/[0.07] px-4 gap-4">
+      <div className="relative w-56 flex-shrink-0" ref={menuRef}>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="h-8 w-8 rounded-md border border-white/[0.12] text-white/70 hover:text-white hover:border-white/25 hover:bg-white/[0.07] transition-colors flex items-center justify-center"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+          >
+            <Menu size={15} />
+          </button>
+          <span className="text-white font-semibold tracking-tight text-sm">planr</span>
+        </div>
+
+        {menuOpen && (
+          <div className="absolute top-[calc(100%+8px)] left-0 z-40 w-56 rounded-lg border border-white/[0.12] bg-[#151515]/95 backdrop-blur p-1.5 shadow-xl">
+            {menuLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-md px-2.5 py-2 text-[12px] font-medium text-white/65 hover:text-white hover:bg-white/[0.07] transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-0.5">
@@ -77,7 +150,7 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={clsx(
-                  "relative flex items-center gap-1.5 px-3 h-11 text-[12.5px] font-medium transition-colors",
+                  "relative flex items-center gap-1.5 px-3 h-14 text-[12.5px] font-medium transition-colors",
                   active ? "text-white" : "text-white/40 hover:text-white/70"
                 )}
               >
@@ -95,9 +168,9 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 w-44 flex-shrink-0 justify-end">
+      <div className="flex items-center gap-1.5 w-56 flex-shrink-0 justify-end">
         <span className="text-[12px] font-semibold text-white/50 tabular-nums mr-2 whitespace-nowrap">
-          Week  {weekNumber}
+          {monthLabel} | {t.week} {weekNumber}
         </span>
         <button
           onClick={() => setWeekStart(subWeeks(weekStart, 1))}
@@ -119,6 +192,13 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
         >
           <ChevronRight size={14} />
         </button>
+        <div className="ml-1 flex-shrink-0">
+          <UserButton
+            appearance={{
+              elements: { avatarBox: "w-7 h-7" },
+            }}
+          />
+        </div>
       </div>
     </div>
   );

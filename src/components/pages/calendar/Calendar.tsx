@@ -1,8 +1,7 @@
 import { NowLine } from "./NowLine";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarTab } from "./CalendarTopBar";
 import {
-  startOfWeek, endOfWeek, eachDayOfInterval,
+  endOfWeek, eachDayOfInterval,
   format, isSameDay, isToday,
 } from "date-fns";
 import { useQuery, useAction } from "convex/react";
@@ -52,20 +51,9 @@ function lessonPeriod(startTime: number): string | null {
 }
 
 interface EventChip { key: string; top: number; height: number; node: React.ReactNode; }
-type CalendarViewMode = "week" | "studyPlanner";
 
-export function Calendar() {
-    const scrollRef = useRef<HTMLDivElement>(null);
-
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
-  const [activeTab, setActiveTab] = useState<CalendarTab>("calendar");
-
-  const handleTabChange = (tab: CalendarTab) => {
-    setActiveTab(tab);
-    if (tab === "calendar") setViewMode("week");
-    if (tab === "studyPlanner") setViewMode("studyPlanner");
-  };
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+export function Calendar({ weekStart }: { weekStart: Date }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd }).slice(0, 5);
 
