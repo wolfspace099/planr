@@ -235,35 +235,15 @@ export default function CalendarPage() {
   const goToday = () => setSelectedDate(new Date());
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f6f3fb] text-[#1a1a1a]">
-      <div className="flex-shrink-0 flex items-center h-14 border-b border-[#e3dbef] px-4 gap-4">
+    <div className="flex flex-col h-full overflow-hidden bg-[#f6f3fb] dark:bg-[#0d0a14] text-[#1a1a1a] dark:text-[#f6f3fb]">
+      <div className="flex-shrink-0 flex items-center h-14 border-b border-[#e3dbef] dark:border-[#2a2138] px-4 gap-4">
         <div className="flex items-center gap-3 w-64 flex-shrink-0">
-          <button className="h-8 w-8 rounded-md hover:bg-black/[0.04] flex items-center justify-center text-[#1a1a1a]/70" aria-label="Open menu">
+          <button className="h-8 w-8 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] flex items-center justify-center text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70" aria-label="Open menu">
             <Menu size={16} />
           </button>
           <div className="flex items-center gap-1.5">
             <Settings size={15} className="text-[#7c3aed]" />
             <span className="font-semibold tracking-tight text-[15px]">cognoto</span>
-          </div>
-          <div className="ml-2 flex items-center rounded-md border border-[#cfc4e0] overflow-hidden text-[11px] font-semibold">
-            <button
-              onClick={() => setViewMode("week")}
-              className={clsx(
-                "px-2.5 h-6 transition-colors",
-                viewMode === "week" ? "bg-[#1a1a1a] text-[#f6f3fb]" : "text-[#1a1a1a]/70 hover:bg-black/[0.04]"
-              )}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => setViewMode("day")}
-              className={clsx(
-                "px-2.5 h-6 transition-colors",
-                viewMode === "day" ? "bg-[#1a1a1a] text-[#f6f3fb]" : "text-[#1a1a1a]/70 hover:bg-black/[0.04]"
-              )}
-            >
-              Dag
-            </button>
           </div>
         </div>
 
@@ -277,12 +257,12 @@ export default function CalendarPage() {
                   onClick={() => handleTabChange(tab.key)}
                   className={clsx(
                     "relative flex items-center gap-1.5 px-4 h-14 text-[13px] font-medium transition-colors",
-                    active ? "text-[#1a1a1a]" : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/80"
+                    active ? "text-[#1a1a1a] dark:text-[#f6f3fb]" : "text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45 hover:text-[#1a1a1a]/80 dark:text-[#f6f3fb]/80"
                   )}
                 >
                   <span>{tab.icon}</span>
                   {tab.label}
-                  {active && <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-[#7c3aed] rounded-full" />}
+                  {active && <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-[#7c3aed]" />}
                 </button>
               );
             })}
@@ -290,23 +270,23 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex items-center gap-2 w-64 flex-shrink-0 justify-end">
-          <span className="text-[12px] font-medium text-[#1a1a1a]/55 tabular-nums whitespace-nowrap">{monthLabel}</span>
-          <button onClick={goPrev} className="w-7 h-7 flex items-center justify-center rounded-md text-[#1a1a1a]/40 hover:text-[#1a1a1a] hover:bg-black/[0.04] transition-colors">
+          <span className="text-[12px] font-medium text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55 tabular-nums whitespace-nowrap">{monthLabel}</span>
+          <button onClick={goPrev} className="w-7 h-7 flex items-center justify-center text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors">
             <ChevronLeft size={14} />
           </button>
           <button
             onClick={goToday}
-            className="h-7 px-3 rounded-md border border-[#cfc4e0] text-[12px] font-medium text-[#1a1a1a]/75 hover:text-[#1a1a1a] hover:border-[#a896c4] transition-colors whitespace-nowrap"
+            className="h-7 px-3 border border-[#cfc4e0] dark:border-[#3a2f50] text-[12px] font-medium text-[#1a1a1a]/75 dark:text-[#f6f3fb]/75 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:border-[#a896c4] dark:hover:border-[#5a4a7c] transition-colors whitespace-nowrap"
           >
             Vandaag
           </button>
-          <button onClick={goNext} className="w-7 h-7 flex items-center justify-center rounded-md text-[#1a1a1a]/40 hover:text-[#1a1a1a] hover:bg-black/[0.04] transition-colors">
+          <button onClick={goNext} className="w-7 h-7 flex items-center justify-center text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors">
             <ChevronRight size={14} />
           </button>
           <div className="ml-1 flex-shrink-0">
             <UserButton
               appearance={{
-                elements: { avatarBox: "w-7 h-7 rounded-md bg-[#2e1f4a]" },
+                elements: { avatarBox: "w-7 h-7 bg-[#2e1f4a] dark:bg-[#7c3aed]" },
               }}
             />
           </div>
@@ -319,7 +299,29 @@ export default function CalendarPage() {
         </div>
       ) : (
         <>
-          <div className="flex-shrink-0 grid grid-cols-7 border-b border-[#e3dbef] px-6 pt-4 pb-3 gap-2">
+          <div className="flex-shrink-0 flex items-center justify-between border-b border-[#e3dbef] dark:border-[#2a2138] px-6 py-2.5">
+            <div className="flex items-center border border-[#cfc4e0] dark:border-[#3a2f50] overflow-hidden text-[11px] font-semibold">
+              <button
+                onClick={() => setViewMode("week")}
+                className={clsx(
+                  "px-3 h-7 transition-colors",
+                  viewMode === "week" ? "bg-[#1a1a1a] text-[#f6f3fb] dark:bg-[#f6f3fb] dark:text-[#1a1a1a]" : "text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                )}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setViewMode("day")}
+                className={clsx(
+                  "px-3 h-7 transition-colors",
+                  viewMode === "day" ? "bg-[#1a1a1a] text-[#f6f3fb] dark:bg-[#f6f3fb] dark:text-[#1a1a1a]" : "text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                )}
+              >
+                Dag
+              </button>
+            </div>
+          </div>
+          <div className="flex-shrink-0 grid grid-cols-7 border-b border-[#e3dbef] dark:border-[#2a2138] px-6 pt-4 pb-3 gap-2">
             {weekDays.map((day) => {
               const { count, alerts } = countItemsForDay(day);
               const selected = isSameDay(day, selectedDate);
@@ -328,15 +330,15 @@ export default function CalendarPage() {
                   key={day.toISOString()}
                   onClick={() => setSelectedDate(day)}
                   className={clsx(
-                    "text-left px-3 py-2 rounded-md transition-colors",
-                    selected ? "border border-[#1a1a1a]/15 bg-[#faf7fd]" : "hover:bg-black/[0.025]"
+                    "text-left px-3 py-2 transition-colors",
+                    selected ? "border border-[#1a1a1a]/15 dark:border-[#f6f3fb]/15 bg-[#faf7fd] dark:bg-[#181225]" : "hover:bg-black/[0.025] dark:hover:bg-white/[0.04]"
                   )}
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#1a1a1a]/45">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45">
                     {format(day, "EEEEEE", { locale: nl })}
                   </p>
                   <p className="mt-0.5 text-[26px] font-bold leading-none tabular-nums">{format(day, "d")}</p>
-                  <div className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a1a1a]/55">
+                  <div className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55">
                     <span className="underline decoration-dotted underline-offset-2">{count} items</span>
                     {alerts > 0 && (
                       <span className="flex items-center gap-0.5 text-[#7c3aed]">
@@ -422,20 +424,20 @@ function DayView({
     <>
       <div className="flex-shrink-0 flex items-end justify-between px-8 py-5">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#1a1a1a]/45">Vandaag</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45">Vandaag</p>
           <p className="mt-1 text-[34px] font-bold leading-none tracking-tight">
             {format(selectedDate, "d MMMM", { locale: nl })}
           </p>
         </div>
-        <div className="flex items-baseline gap-7 text-[#1a1a1a]/65">
+        <div className="flex items-baseline gap-7 text-[#1a1a1a]/65 dark:text-[#f6f3fb]/65">
           <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] mr-1.5">{dayLessonCount}</span>lessen
+            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayLessonCount}</span>lessen
           </span>
           <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] mr-1.5">{dayStudyCount}</span>studie
+            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayStudyCount}</span>studie
           </span>
           <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] mr-1.5">{dayTotalHours}u</span>totaal
+            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayTotalHours}u</span>totaal
           </span>
         </div>
       </div>
@@ -452,7 +454,7 @@ function DayView({
                 className="absolute w-full flex items-start justify-end pr-3"
                 style={{ top: i * HOUR_HEIGHT - 7, height: HOUR_HEIGHT }}
               >
-                <span className="text-[11px] text-[#1a1a1a]/35 font-medium tabular-nums leading-none">
+                <span className="text-[11px] text-[#1a1a1a]/35 dark:text-[#f6f3fb]/35 font-medium tabular-nums leading-none">
                   {String(h).padStart(2, "0")}:00
                 </span>
               </div>
@@ -467,7 +469,7 @@ function DayView({
             {hours.map((h, i) => (
               <div
                 key={h}
-                className="absolute w-full border-t border-[#e3dbef]"
+                className="absolute w-full border-t border-[#e3dbef] dark:border-[#2a2138]"
                 style={{ top: i * HOUR_HEIGHT }}
               />
             ))}
@@ -479,7 +481,7 @@ function DayView({
               const end = new Date(e.endMs);
               const inner = (
                 <div
-                  className="h-full rounded-md bg-[#faf7fd] px-3 py-1.5 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] transition-colors"
+                  className="h-full bg-[#faf7fd] dark:bg-[#181225] px-3 py-1.5 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] dark:hover:bg-[#221833] transition-colors"
                   style={{ borderLeft: `3px solid ${e.color}`, boxShadow: "0 1px 0 rgba(0,0,0,0.04)" }}
                 >
                   <div className="flex items-center gap-1.5">
@@ -490,9 +492,9 @@ function DayView({
                     <span className="text-[12.5px] font-semibold leading-tight truncate">{e.title}</span>
                   </div>
                   {e.subtitle && (
-                    <span className="text-[11px] text-[#1a1a1a]/55 leading-tight truncate">{e.subtitle}</span>
+                    <span className="text-[11px] text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55 leading-tight truncate">{e.subtitle}</span>
                   )}
-                  <span className="text-[10.5px] text-[#1a1a1a]/40 leading-none mt-auto tabular-nums">
+                  <span className="text-[10.5px] text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 leading-none mt-auto tabular-nums">
                     {format(start, "HH:mm")}–{format(end, "HH:mm")}
                   </span>
                 </div>
@@ -561,7 +563,7 @@ function WeekView({
               className="absolute w-full flex items-start justify-end pr-3"
               style={{ top: i * HOUR_HEIGHT - 7, height: HOUR_HEIGHT }}
             >
-              <span className="text-[11px] text-[#1a1a1a]/35 font-medium tabular-nums leading-none">
+              <span className="text-[11px] text-[#1a1a1a]/35 dark:text-[#f6f3fb]/35 font-medium tabular-nums leading-none">
                 {String(h).padStart(2, "0")}:00
               </span>
             </div>
@@ -573,14 +575,14 @@ function WeekView({
           return (
             <div
               key={day.toISOString()}
-              className={clsx("relative cursor-pointer", idx !== 0 && "border-l border-[#e3dbef]")}
+              className={clsx("relative cursor-pointer", idx !== 0 && "border-l border-[#e3dbef] dark:border-[#2a2138]")}
               style={{ height: totalGridHeight }}
               onClick={(e) => handleColumnClick(e, day)}
             >
               {hours.map((h, i) => (
                 <div
                   key={h}
-                  className="absolute w-full border-t border-[#e3dbef]"
+                  className="absolute w-full border-t border-[#e3dbef] dark:border-[#2a2138]"
                   style={{ top: i * HOUR_HEIGHT }}
                 />
               ))}
@@ -589,11 +591,11 @@ function WeekView({
                 const height = Math.max(durationPx(e.startMs, e.endMs), 24);
                 const inner = (
                   <div
-                    className="h-full rounded-md bg-[#faf7fd] px-2 py-1 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] transition-colors"
+                    className="h-full bg-[#faf7fd] dark:bg-[#181225] px-2 py-1 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] dark:hover:bg-[#221833] transition-colors"
                     style={{ borderLeft: `3px solid ${e.color}` }}
                   >
                     <span className="text-[11px] font-semibold leading-tight truncate">{e.title}</span>
-                    <span className="text-[9.5px] text-[#1a1a1a]/45 leading-none mt-auto tabular-nums">
+                    <span className="text-[9.5px] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45 leading-none mt-auto tabular-nums">
                       {format(new Date(e.startMs), "HH:mm")}
                     </span>
                   </div>
