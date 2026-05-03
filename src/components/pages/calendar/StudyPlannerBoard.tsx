@@ -6,71 +6,81 @@ import {
   getISOWeek,
   startOfWeek,
 } from "date-fns"
+import { nl } from "date-fns/locale"
 import clsx from "clsx"
 import { useMemo, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
-import { Plus, X } from "lucide-react"
+import { AlertTriangle, ChevronDown, ChevronUp, Filter, Sparkles, X } from "lucide-react"
 import { LessonPickerModal } from "./LessonPickerModal"
 
 export type PlannerBlock = {
   id: string
   title: string
-  subtitle: string
+  subtitle?: string
   tone: "test" | "homework" | "study" | "task"
+  warning?: boolean
 }
 
 export function StudyPlannerBoard({
   weekStart,
-  visibleWeeks = 4,
+  visibleWeeks = 5,
 }: {
   weekStart: Date
   visibleWeeks?: number
 }) {
   const homework = useQuery(api.homework.getAll)
+  const tests = useQuery(api.misc.getTests)
   const lessons = useQuery(api.lessons.getAll)
 
   const create = useMutation(api.homework.create)
 
+  const [activeWeekStart, setActiveWeekStart] = useState<Date>(() => startOfWeek(weekStart, { weekStartsOn: 1 }))
   const [modal, setModal] = useState(false)
   const [lessonModal, setLessonModal] = useState(false)
   const [selectedLesson, setSelectedLesson] = useState<any>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
 
-  const toneClasses: Record<PlannerBlock["tone"], string> = {
-    test: "border-l-orange-400/90",
-    homework: "border-l-blue-400/90",
-    study: "border-l-emerald-400/90",
-    task: "border-l-violet-400/90",
-  }
-
   const dayBlocks: Record<string, PlannerBlock[]> = useMemo(() => {
     const map: Record<string, PlannerBlock[]> = {}
 
     for (const h of homework ?? []) {
       const key = format(new Date(h.dueDate), "yyyy-MM-dd")
-
       if (!map[key]) map[key] = []
-
       map[key].push({
-        id: h._id,
-        title: h.title,
-        subtitle: h.subject,
+        id: String(h._id),
+        title: (h.subject ?? h.title ?? "").toLowerCase(),
+        subtitle: h.title,
         tone: "homework",
       })
     }
 
+    for (const t of tests ?? []) {
+      const key = format(new Date(t.date), "yyyy-MM-dd")
+      if (!map[key]) map[key] = []
+      map[key].push({
+        id: String(t._id),
+        title: (t.subject ?? "").toLowerCase(),
+        subtitle: t.topic,
+        tone: "test",
+        warning: true,
+      })
+    }
+
     return map
-  }, [homework])
+  }, [homework, tests])
 
   const weeks = useMemo(() => {
     return Array.from({ length: visibleWeeks }, (_, index) => {
-      const start = startOfWeek(addWeeks(weekStart, index), { weekStartsOn: 1 })
+      const start = startOfWeek(addWeeks(activeWeekStart, index), { weekStartsOn: 1 })
       const end = endOfWeek(start, { weekStartsOn: 1 })
       return eachDayOfInterval({ start, end }).slice(0, 5)
     })
-  }, [visibleWeeks, weekStart])
+  }, [visibleWeeks, activeWeekStart])
+
+  const monthLabel = format(activeWeekStart, "MMMM", { locale: nl })
+  const monthLabelCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)
 
   const submit = async () => {
     if (!title.trim() || !selectedLesson) return
@@ -89,23 +99,78 @@ export function StudyPlannerBoard({
     setModal(false)
   }
 
-  return (
-    <div className="h-full overflow-y-auto">
-      <div className="min-w-[1200px]">
-        <div className="sticky top-0 z-20 bg-black/80 backdrop-blur border-b border-white/[0.08] flex justify-between px-4 py-3">
-          <div className="text-white font-semibold">
-            {format(weekStart, "MMMM yyyy")}
-          </div>
+  const dayHeaders = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag"]
 
+  return (
+    <div className="h-full overflow-hidden flex flex-col bg-[#f6f3fb] text-[#1a1a1a] relative">
+      <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-[#e3dbef]">
+        <div className="flex items-center gap-3">
+          <h1 className="text-[22px] font-bold leading-none">{monthLabelCap}</h1>
+          <div className="flex flex-col">
+            <button
+              onClick={() => setActiveWeekStart((d) => addWeeks(d, -1))}
+              className="h-4 w-6 flex items-center justify-center text-[#1a1a1a]/45 hover:text-[#1a1a1a] hover:bg-black/[0.04] rounded-sm transition-colors"
+              aria-label="Vorige week"
+            >
+              <ChevronUp size={12} />
+            </button>
+            <button
+              onClick={() => setActiveWeekStart((d) => addWeeks(d, 1))}
+              className="h-4 w-6 flex items-center justify-center text-[#1a1a1a]/45 hover:text-[#1a1a1a] hover:bg-black/[0.04] rounded-sm transition-colors"
+              aria-label="Volgende week"
+            >
+              <ChevronDown size={12} />
+            </button>
+          </div>
           <button
-            onClick={() => setModal(true)}
-            className="text-white text-sm flex items-center gap-1"
+            onClick={() => setActiveWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+            className="h-7 px-3 rounded-md border border-[#cfc4e0] text-[12px] font-medium text-[#1a1a1a]/75 hover:text-[#1a1a1a] hover:border-[#a896c4] hover:bg-white transition-colors"
           >
-            <Plus size={14} /> Add homework
+            Vandaag
+          </button>
+          <button className="h-7 px-2.5 rounded-md border border-[#cfc4e0] text-[12px] font-medium text-[#1a1a1a]/70 hover:bg-white hover:border-[#a896c4] transition-colors flex items-center gap-1.5">
+            <Filter size={12} />
+            Filters
+            <ChevronDown size={11} className="opacity-60" />
           </button>
         </div>
 
-        <div className="border-t border-white/[0.08]">
+        <div className="flex items-center gap-2">
+          <button className="h-7 px-3 rounded-md border border-[#cfc4e0] text-[12px] font-medium text-[#1a1a1a]/75 hover:bg-white hover:border-[#a896c4] transition-colors flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Inleveren
+          </button>
+          <button
+            onClick={() => setModal(true)}
+            className="h-7 px-3 rounded-md border border-[#cfc4e0] text-[12px] font-medium text-[#1a1a1a]/75 hover:bg-white hover:border-[#a896c4] transition-colors flex items-center gap-1.5"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            Materiaal
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        <div className="min-w-[1100px]">
+          <div
+            className="sticky top-0 z-10 bg-[#f6f3fb] grid border-b border-[#e3dbef]"
+            style={{ gridTemplateColumns: "240px repeat(5, minmax(0, 1fr))" }}
+          >
+            <div className="px-4 py-3" />
+            {dayHeaders.map((label) => (
+              <div key={label} className="px-4 py-3 text-[12px] font-semibold text-[#1a1a1a]/55">
+                {label}
+              </div>
+            ))}
+          </div>
+
           {weeks.map((weekDays) => {
             const weekNumber = getISOWeek(weekDays[0])
             const weekItems = weekDays.flatMap((day) => {
@@ -119,38 +184,24 @@ export function StudyPlannerBoard({
             return (
               <div
                 key={weekDays[0].toISOString()}
-                className="grid border-b border-white/[0.08]"
-                style={{ gridTemplateColumns: "260px repeat(5, minmax(0, 1fr))" }}
+                className="grid border-b border-[#e3dbef]"
+                style={{ gridTemplateColumns: "240px repeat(5, minmax(0, 1fr))" }}
               >
-                <div className="border-r border-white/[0.08] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[24px] font-semibold text-white/75 leading-none">
-                      Weektaken
-                    </p>
-                    <p className="text-[14px] text-white/35 whitespace-nowrap">
-                      Week {weekNumber}
-                    </p>
+                <div className="border-r border-[#e3dbef] px-4 py-3 min-h-[180px]">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[13px] font-semibold text-[#1a1a1a]/85">Weektaken</p>
+                    <p className="text-[11px] text-[#1a1a1a]/40 tabular-nums">w{String(weekNumber).padStart(2, "0")}</p>
                   </div>
 
-                  <div className="mt-4 space-y-1.5">
-                    {weekItems.length === 0 ? (
-                      <p className="text-xs text-white/25">Geen weektaken</p>
-                    ) : (
+                  <div className="mt-3 space-y-1.5">
+                    {weekItems.length === 0 ? null : (
                       weekItems.map((item) => (
-                        <div
+                        <TaskCard
                           key={`${item.id}-${item.dueDate.toISOString()}`}
-                          className={clsx(
-                            "rounded-md border border-white/[0.14] bg-[#28313a]/70 border-l-[3px] px-3 py-2",
-                            toneClasses[item.tone]
-                          )}
-                        >
-                          <p className="text-[12px] font-semibold text-white leading-tight truncate">
-                            {item.title}
-                          </p>
-                          <p className="text-[11px] text-white/65 truncate">
-                            {item.subtitle} | {format(item.dueDate, "EEE d")}
-                          </p>
-                        </div>
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          warning={item.warning}
+                        />
                       ))
                     )}
                   </div>
@@ -163,28 +214,20 @@ export function StudyPlannerBoard({
                   return (
                     <div
                       key={key}
-                      className="border-r last:border-r-0 border-white/[0.08] px-3 py-3 min-h-[230px] bg-[#111821]"
+                      className="border-r last:border-r-0 border-[#e3dbef] px-3 py-3 min-h-[180px]"
                     >
-                      <p className="text-sm font-semibold text-white/80">
-                        {format(day, "d")}
+                      <p className="text-[12px] font-medium text-[#1a1a1a]/45 tabular-nums">
+                        {format(day, "dd")}
                       </p>
 
                       <div className="mt-2 space-y-1.5">
                         {items.map((item) => (
-                          <div
+                          <TaskCard
                             key={item.id}
-                            className={clsx(
-                              "rounded-md border border-white/[0.14] bg-[#28313a]/85 border-l-[3px] px-3 py-2",
-                              toneClasses[item.tone]
-                            )}
-                          >
-                            <p className="text-[12px] font-semibold text-white leading-tight truncate">
-                              {item.title}
-                            </p>
-                            <p className="text-[11px] text-white/65 truncate">
-                              {item.subtitle}
-                            </p>
-                          </div>
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            warning={item.warning}
+                          />
                         ))}
                       </div>
                     </div>
@@ -194,80 +237,121 @@ export function StudyPlannerBoard({
             )
           })}
         </div>
+      </div>
 
-        {modal && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
-            <div className="bg-black border border-white/10 p-4 rounded-lg w-[380px] space-y-3">
-              <div className="flex justify-between text-white">
-                <span>Add homework</span>
-                <button onClick={() => setModal(false)}>
-                  <X size={14} />
-                </button>
-              </div>
+      <button className="absolute bottom-5 right-5 h-9 px-4 rounded-md bg-white border border-[#cfc4e0] shadow-sm text-[12.5px] font-medium text-[#1a1a1a] hover:border-[#a896c4] transition-colors flex items-center gap-1.5">
+        <Sparkles size={13} className="text-[#7c3aed]" />
+        Studiehulp
+      </button>
 
-              <input
-                className="w-full p-2 bg-white/5 text-white text-sm"
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+      {modal && (
+        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
+          <div className="bg-white border border-[#e3dbef] p-4 rounded-lg w-[380px] space-y-3 shadow-xl">
+            <div className="flex justify-between items-center text-[#1a1a1a]">
+              <span className="text-[14px] font-semibold">Add homework</span>
+              <button onClick={() => setModal(false)} className="text-[#1a1a1a]/55 hover:text-[#1a1a1a]">
+                <X size={14} />
+              </button>
+            </div>
 
-              <textarea
-                className="w-full p-2 bg-white/5 text-white text-sm"
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
+            <input
+              className="w-full p-2 bg-[#f6f3fb] border border-[#e3dbef] rounded text-[#1a1a1a] text-sm focus:outline-none focus:border-[#7c3aed]"
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
 
-              <div className="space-y-2">
-                <div className="text-xs text-white/60">
-                  {selectedLesson
-                    ? `${selectedLesson.subject} · ${format(
-                        new Date(selectedLesson.startTime),
-                        "EEEE d MMM · HH:mm"
-                      )}`
-                    : "No lesson selected"}
-                </div>
+            <textarea
+              className="w-full p-2 bg-[#f6f3fb] border border-[#e3dbef] rounded text-[#1a1a1a] text-sm focus:outline-none focus:border-[#7c3aed]"
+              placeholder="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
 
-                <button
-                  onClick={() => setLessonModal(true)}
-                  className="w-full border border-white/10 text-white text-sm py-2 rounded"
-                >
-                  Select lesson
-                </button>
-
-                {selectedLesson && (
-                  <button
-                    onClick={() => setSelectedLesson(null)}
-                    className="text-xs text-red-400"
-                  >
-                    Clear lesson
-                  </button>
-                )}
+            <div className="space-y-2">
+              <div className="text-xs text-[#1a1a1a]/55">
+                {selectedLesson
+                  ? `${selectedLesson.subject} | ${format(
+                      new Date(selectedLesson.startTime),
+                      "EEEE d MMM | HH:mm"
+                    )}`
+                  : "No lesson selected"}
               </div>
 
               <button
-                onClick={submit}
-                disabled={!selectedLesson || !title.trim()}
-                className="w-full bg-white text-black text-sm py-2 rounded disabled:opacity-40"
+                onClick={() => setLessonModal(true)}
+                className="w-full border border-[#cfc4e0] text-[#1a1a1a] text-sm py-2 rounded hover:bg-[#f6f3fb]"
               >
-                Create
+                Select lesson
               </button>
 
-              <LessonPickerModal
-                open={lessonModal}
-                onClose={() => setLessonModal(false)}
-                lessons={lessons ?? []}
-                days={weeks.flat()}
-                onSelect={(lesson) => {
-                    setSelectedLesson(lesson)
-                    setLessonModal(false)
-                }}
-            />
+              {selectedLesson && (
+                <button
+                  onClick={() => setSelectedLesson(null)}
+                  className="text-xs text-red-500"
+                >
+                  Clear lesson
+                </button>
+              )}
             </div>
+
+            <button
+              onClick={submit}
+              disabled={!selectedLesson || !title.trim()}
+              className="w-full bg-[#7c3aed] text-white text-sm py-2 rounded disabled:opacity-40 hover:bg-[#6d28d9]"
+            >
+              Create
+            </button>
+
+            <LessonPickerModal
+              open={lessonModal}
+              onClose={() => setLessonModal(false)}
+              lessons={lessons ?? []}
+              days={weeks.flat()}
+              onSelect={(lesson) => {
+                setSelectedLesson(lesson)
+                setLessonModal(false)
+              }}
+            />
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TaskCard({
+  title,
+  subtitle,
+  warning,
+}: {
+  title: string
+  subtitle?: string
+  warning?: boolean
+}) {
+  return (
+    <div
+      className={clsx(
+        "rounded-md border px-2.5 py-1.5 transition-colors cursor-pointer",
+        warning
+          ? "bg-[#fdeeee] border-[#e6b8b8] hover:bg-[#fce5e5]"
+          : "bg-white border-[#e3dbef] hover:border-[#cfc4e0]"
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        {warning ? (
+          <AlertTriangle size={11} className="text-[#c44545] flex-shrink-0" />
+        ) : (
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-[#1a1a1a]/45 flex-shrink-0">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
         )}
+        <p className="text-[12px] font-semibold text-[#1a1a1a] leading-tight truncate">{title}</p>
       </div>
+      {subtitle && (
+        <p className="mt-0.5 ml-[18px] text-[11px] text-[#1a1a1a]/55 leading-tight truncate">{subtitle}</p>
+      )}
     </div>
   )
 }

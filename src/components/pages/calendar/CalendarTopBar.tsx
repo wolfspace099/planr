@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/clerk-react";
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { addWeeks, endOfWeek, format, getISOWeek, isSameMonth, startOfWeek, subWeeks } from "date-fns";
 import { enUS, nl } from "date-fns/locale";
 import clsx from "clsx";
@@ -116,11 +116,11 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="h-8 w-8 rounded-md border border-white/[0.12] text-white/70 hover:text-white hover:border-white/25 hover:bg-white/[0.07] transition-colors flex items-center justify-center"
+            className="h-8 w-8 rounded-md text-purple-400 hover:text-purple-300 hover:bg-purple-400/[0.10] transition-colors flex items-center justify-center"
             aria-label="Open menu"
             aria-expanded={menuOpen}
           >
-            <Menu size={15} />
+            <Settings size={16} />
           </button>
           <span className="text-white font-semibold tracking-tight text-sm">planr</span>
         </div>
@@ -151,16 +151,16 @@ export function CalendarTopBar({weekStart, setWeekStart, activeTab, setActiveTab
                 onClick={() => setActiveTab(tab.key)}
                 className={clsx(
                   "relative flex items-center gap-1.5 px-3 h-14 text-[12.5px] font-medium transition-colors",
-                  active ? "text-white" : "text-white/40 hover:text-white/70"
+                  active ? "text-purple-400" : "text-white/40 hover:text-white/70"
                 )}
               >
-                <span className={clsx("transition-colors", active ? "text-white" : "text-white/35")}>
+                <span className={clsx("transition-colors", active ? "text-purple-400" : "text-white/35")}>
                   {tab.icon}
                 </span>
                 {tab.label}
                 {/* Active underline */}
                 {active && (
-                  <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-white rounded-full" />
+                  <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-purple-500 rounded-full" />
                 )}
               </button>
             );
