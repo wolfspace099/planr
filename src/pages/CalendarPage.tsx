@@ -16,12 +16,13 @@ import {
 } from "date-fns";
 import { nl } from "date-fns/locale";
 import { UserButton } from "@clerk/clerk-react";
-import { Link } from "react-router-dom";
-import { Bell, ChevronLeft, ChevronRight, Menu, Settings } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Menu, Plus, Settings } from "lucide-react";
 import clsx from "clsx";
 
 import { CreateAppointmentCard } from "../components/pages/calendar/CreateAppointmentCard";
 import { StudyPlannerBoard } from "../components/pages/calendar/StudyPlannerBoard";
+import { DetailPanel } from "../components/pages/calendar/DetailPanel";
+import { QuickAddPopup } from "../components/pages/calendar/QuickAddPopup";
 
 const HOUR_HEIGHT = 68;
 const START_HOUR = 7;
@@ -31,6 +32,24 @@ const TIME_COL_W = 64;
 
 type ViewMode = "week" | "day" | "studyPlanner";
 type Tab = "calendar" | "studyPlanner" | "notebook" | "grades" | "messages";
+
+export type DetailPanelState =
+  | { kind: "lesson"; id: string }
+  | { kind: "appointment"; id: string }
+  | { kind: "homework"; id: string }
+  | { kind: "test"; id: string }
+  | { kind: "task"; id: string }
+  | null;
+
+type EventChip = {
+  key: string;
+  startMs: number;
+  endMs: number;
+  title: string;
+  subtitle?: string;
+  color: string;
+  select?: { kind: "lesson" | "appointment"; id: string };
+};
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   {
@@ -97,6 +116,8 @@ export default function CalendarPage() {
   const [activeTab, setActiveTab] = useState<Tab>("calendar");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number } | null>(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [detailPanel, setDetailPanel] = useState<DetailPanelState>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasSynced = useRef(false);
@@ -138,6 +159,33 @@ export default function CalendarPage() {
     scrollRef.current.scrollTop = Math.max(0, (h - START_HOUR - 1) * HOUR_HEIGHT);
   }, [viewMode]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (viewMode === "studyPlanner") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setSelectedDate((d) => (viewMode === "day" ? subDays(d, 1) : subWeeks(d, 1)));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setSelectedDate((d) => (viewMode === "day" ? addDays(d, 1) : addWeeks(d, 1)));
+      } else if (e.key === "t" || e.key === "T") {
+        e.preventDefault();
+        setSelectedDate(new Date());
+      } else if (e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        setViewMode("day");
+      } else if (e.key === "w" || e.key === "W") {
+        e.preventDefault();
+        setViewMode("week");
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [viewMode]);
+
   const calendarVisible = useMemo(() => {
     const map: Record<string, boolean> = {};
     for (const cal of calendars) map[cal._id] = cal.visible;
@@ -150,8 +198,8 @@ export default function CalendarPage() {
     if (tab === "studyPlanner") setViewMode("studyPlanner");
   };
 
-  function getEventsForDay(day: Date) {
-    const items: { key: string; startMs: number; endMs: number; title: string; subtitle?: string; color: string; href?: string }[] = [];
+  function getEventsForDay(day: Date): EventChip[] {
+    const items: EventChip[] = [];
 
     (lessons ?? []).filter((l) => isSameDay(new Date(l.startTime), day)).forEach((l) => {
       items.push({
@@ -161,7 +209,7 @@ export default function CalendarPage() {
         title: l.subject,
         subtitle: l.subject,
         color: "#7c3aed",
-        href: `/lesson/${l._id}`,
+        select: { kind: "lesson", id: String(l._id) },
       });
     });
 
@@ -181,7 +229,15 @@ export default function CalendarPage() {
       const endMs = a.endTime ?? startMs + 50 * 60_000;
       const cal = a.calendarId ? calendars.find((c) => c._id === a.calendarId) : null;
       const color = cal?.color ?? a.color ?? "#7c3aed";
-      items.push({ key: `appt-${a._id}`, startMs, endMs, title: a.title, subtitle: a.location ?? undefined, color });
+      items.push({
+        key: `appt-${a._id}`,
+        startMs,
+        endMs,
+        title: a.title,
+        subtitle: a.location ?? undefined,
+        color,
+        select: { kind: "appointment", id: String(a._id) },
+      });
     });
 
     (studySessions ?? []).filter((s: any) => isSameDay(new Date(s.startTime), day)).forEach((s: any) => {
@@ -222,7 +278,8 @@ export default function CalendarPage() {
   const dayTotalMs = todayEvents.reduce((acc, e) => acc + (e.endMs - e.startMs), 0);
   const dayTotalHours = Math.round((dayTotalMs / 3_600_000) * 10) / 10;
 
-  const monthLabel = format(selectedDate, "MMM yyyy", { locale: nl });
+  const monthLabelRaw = format(selectedDate, "MMM yyyy", { locale: nl });
+  const monthLabel = monthLabelRaw.charAt(0).toUpperCase() + monthLabelRaw.slice(1);
 
   const goPrev = () => {
     if (viewMode === "day") setSelectedDate((d) => subDays(d, 1));
@@ -235,114 +292,138 @@ export default function CalendarPage() {
   const goToday = () => setSelectedDate(new Date());
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f6f3fb] dark:bg-[#0d0a14] text-[#1a1a1a] dark:text-[#f6f3fb]">
-      <div className="flex-shrink-0 flex items-center h-14 border-b border-[#e3dbef] dark:border-[#2a2138] px-4 gap-4">
-        <div className="flex items-center gap-3 w-64 flex-shrink-0">
-          <button className="h-8 w-8 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] flex items-center justify-center text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70" aria-label="Open menu">
-            <Menu size={16} />
-          </button>
-          <div className="flex items-center gap-1.5">
-            <Settings size={15} className="text-[#7c3aed]" />
-            <span className="font-semibold tracking-tight text-[15px]">cognoto</span>
-          </div>
+    <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-[#1e1e1e] text-[#333333] dark:text-[#cccccc]">
+      <div className="flex-shrink-0 flex items-center h-[30px] bg-[#dddddd] dark:bg-[#3c3c3c] border-b border-[#cccccc] dark:border-[#252526] select-none">
+        <div className="flex items-center gap-2 px-3 w-56 flex-shrink-0">
+          <Settings size={13} className="text-[#7c3aed]" strokeWidth={2} />
+          <span className="text-[12px] font-normal text-[#333333] dark:text-[#cccccc]">cognoto</span>
         </div>
-
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-1">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => handleTabChange(tab.key)}
-                  className={clsx(
-                    "relative flex items-center gap-1.5 px-4 h-14 text-[13px] font-medium transition-colors",
-                    active ? "text-[#1a1a1a] dark:text-[#f6f3fb]" : "text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45 hover:text-[#1a1a1a]/80 dark:text-[#f6f3fb]/80"
-                  )}
-                >
-                  <span>{tab.icon}</span>
-                  {tab.label}
-                  {active && <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-[#7c3aed]" />}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-1.5 px-2 h-[22px] bg-white dark:bg-[#252526] border border-[#cccccc] dark:border-[#1e1e1e] min-w-[280px] justify-center">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7c3aed]" />
+            <span className="text-[12px] text-[#333333] dark:text-[#cccccc] tabular-nums">cognoto — {format(selectedDate, "EEE d MMM yyyy", { locale: nl })}</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 w-64 flex-shrink-0 justify-end">
-          <span className="text-[12px] font-medium text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55 tabular-nums whitespace-nowrap">{monthLabel}</span>
-          <button onClick={goPrev} className="w-7 h-7 flex items-center justify-center text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors">
-            <ChevronLeft size={14} />
-          </button>
-          <button
-            onClick={goToday}
-            className="h-7 px-3 border border-[#cfc4e0] dark:border-[#3a2f50] text-[12px] font-medium text-[#1a1a1a]/75 dark:text-[#f6f3fb]/75 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:border-[#a896c4] dark:hover:border-[#5a4a7c] transition-colors whitespace-nowrap"
-          >
-            Vandaag
-          </button>
-          <button onClick={goNext} className="w-7 h-7 flex items-center justify-center text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 hover:text-[#1a1a1a] dark:hover:text-[#f6f3fb] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors">
-            <ChevronRight size={14} />
-          </button>
-          <div className="ml-1 flex-shrink-0">
-            <UserButton
-              appearance={{
-                elements: { avatarBox: "w-7 h-7 bg-[#2e1f4a] dark:bg-[#7c3aed]" },
-              }}
-            />
-          </div>
+        <div className="flex items-center w-56 flex-shrink-0 justify-end">
+          <UserButton
+            appearance={{
+              elements: { avatarBox: "w-5 h-5 mr-3 bg-[#7c3aed]" },
+            }}
+          />
         </div>
       </div>
 
+      <div className="flex-shrink-0 flex items-center h-[24px] bg-[#f3f3f3] dark:bg-[#3c3c3c] border-b border-[#e7e7e7] dark:border-[#252526] px-1 select-none">
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={clsx(
+                "relative flex items-center gap-1.5 px-2.5 h-[22px] text-[12px] transition-colors",
+                active
+                  ? "text-[#333333] dark:text-[#ffffff] bg-white dark:bg-[#1e1e1e]"
+                  : "text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e]"
+              )}
+            >
+              <span className={clsx(active ? "text-[#7c3aed]" : "opacity-70")}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <button
+          onClick={() => setQuickAddOpen(true)}
+          className="h-[22px] px-2 text-[11px] text-white bg-[#7c3aed] hover:bg-[#6d28d9] focus:outline-none flex items-center gap-1 mr-1"
+        >
+          <Plus size={12} strokeWidth={2.25} />
+          Toevoegen
+        </button>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
       {viewMode === "studyPlanner" ? (
         <div className="flex-1 overflow-hidden">
-          <StudyPlannerBoard weekStart={weekStart} />
+          <StudyPlannerBoard weekStart={weekStart} onSelect={(s) => setDetailPanel(s)} onQuickAdd={() => setQuickAddOpen(true)} />
         </div>
       ) : (
         <>
-          <div className="flex-shrink-0 flex items-center justify-between border-b border-[#e3dbef] dark:border-[#2a2138] px-6 py-2.5">
-            <div className="flex items-center border border-[#cfc4e0] dark:border-[#3a2f50] overflow-hidden text-[11px] font-semibold">
-              <button
-                onClick={() => setViewMode("week")}
-                className={clsx(
-                  "px-3 h-7 transition-colors",
-                  viewMode === "week" ? "bg-[#1a1a1a] text-[#f6f3fb] dark:bg-[#f6f3fb] dark:text-[#1a1a1a]" : "text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-                )}
-              >
-                Week
+          <div className="flex-shrink-0 flex items-center h-[28px] bg-[#f3f3f3] dark:bg-[#252526] border-b border-[#e7e7e7] dark:border-[#1e1e1e] px-1 select-none">
+            <button
+              onClick={() => setViewMode("week")}
+              className={clsx(
+                "h-[28px] px-3 text-[11px] uppercase tracking-wide border-r border-[#e7e7e7] dark:border-[#1e1e1e] transition-colors focus:outline-none",
+                viewMode === "week"
+                  ? "bg-white dark:bg-[#1e1e1e] text-[#333333] dark:text-[#ffffff] border-t-2 border-t-[#7c3aed] -mt-px"
+                  : "text-[#6c6c6c] dark:text-[#969696] hover:text-[#333333] dark:hover:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e]"
+              )}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => setViewMode("day")}
+              className={clsx(
+                "h-[28px] px-3 text-[11px] uppercase tracking-wide border-r border-[#e7e7e7] dark:border-[#1e1e1e] transition-colors focus:outline-none",
+                viewMode === "day"
+                  ? "bg-white dark:bg-[#1e1e1e] text-[#333333] dark:text-[#ffffff] border-t-2 border-t-[#7c3aed] -mt-px"
+                  : "text-[#6c6c6c] dark:text-[#969696] hover:text-[#333333] dark:hover:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e]"
+              )}
+            >
+              Dag
+            </button>
+            <div className="flex-1" />
+            <div className="flex items-center gap-px pr-1">
+              <button onClick={goPrev} aria-label="Vorige" className="w-6 h-[22px] flex items-center justify-center text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e] focus:outline-none">
+                <ChevronLeft size={13} strokeWidth={2} />
               </button>
               <button
-                onClick={() => setViewMode("day")}
-                className={clsx(
-                  "px-3 h-7 transition-colors",
-                  viewMode === "day" ? "bg-[#1a1a1a] text-[#f6f3fb] dark:bg-[#f6f3fb] dark:text-[#1a1a1a]" : "text-[#1a1a1a]/70 dark:text-[#f6f3fb]/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-                )}
+                onClick={goToday}
+                className="h-[22px] px-2 text-[11px] text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e] focus:outline-none"
               >
-                Dag
+                Vandaag
               </button>
+              <button onClick={goNext} aria-label="Volgende" className="w-6 h-[22px] flex items-center justify-center text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e] focus:outline-none">
+                <ChevronRight size={13} strokeWidth={2} />
+              </button>
+              <span className="text-[11px] text-[#6c6c6c] dark:text-[#969696] tabular-nums px-2">{monthLabel}</span>
             </div>
           </div>
-          <div className="flex-shrink-0 grid grid-cols-7 border-b border-[#e3dbef] dark:border-[#2a2138] px-6 pt-4 pb-3 gap-2">
-            {weekDays.map((day) => {
+          <div className="flex-shrink-0 grid grid-cols-7 border-b border-[#e7e7e7] dark:border-[#252526] select-none">
+            {weekDays.map((day, idx) => {
               const { count, alerts } = countItemsForDay(day);
               const selected = isSameDay(day, selectedDate);
+              const today = isToday(day);
               return (
                 <button
                   key={day.toISOString()}
                   onClick={() => setSelectedDate(day)}
                   className={clsx(
-                    "text-left px-3 py-2 transition-colors",
-                    selected ? "border border-[#1a1a1a]/15 dark:border-[#f6f3fb]/15 bg-[#faf7fd] dark:bg-[#181225]" : "hover:bg-black/[0.025] dark:hover:bg-white/[0.04]"
+                    "text-left px-3 py-2 transition-colors focus:outline-none border-r border-[#e7e7e7] dark:border-[#252526]",
+                    idx === 6 && "border-r-0",
+                    selected
+                      ? "bg-[#e4e6f1] dark:bg-[#094771] text-[#333333] dark:text-[#ffffff]"
+                      : "hover:bg-[#f3f3f3] dark:hover:bg-[#2a2d2e]"
                   )}
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45">
-                    {format(day, "EEEEEE", { locale: nl })}
-                  </p>
-                  <p className="mt-0.5 text-[26px] font-bold leading-none tabular-nums">{format(day, "d")}</p>
-                  <div className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55">
-                    <span className="underline decoration-dotted underline-offset-2">{count} items</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className={clsx(
+                      "text-[10px] uppercase tracking-wide",
+                      today ? "text-[#7c3aed] font-semibold" : "text-[#6c6c6c] dark:text-[#969696]"
+                    )}>
+                      {format(day, "EEEEEE", { locale: nl })}
+                    </p>
+                    <p className={clsx(
+                      "text-[15px] font-semibold leading-none tabular-nums",
+                      today && "text-[#7c3aed]"
+                    )}>{format(day, "d")}</p>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[#6c6c6c] dark:text-[#969696] font-mono">
+                    <span>{count} items</span>
                     {alerts > 0 && (
                       <span className="flex items-center gap-0.5 text-[#7c3aed]">
-                        <Bell size={9} />
+                        <Bell size={9} strokeWidth={2.25} />
                         {alerts}
                       </span>
                     )}
@@ -361,6 +442,7 @@ export default function CalendarPage() {
               dayStudyCount={dayStudyCount}
               dayTotalHours={dayTotalHours}
               onSlotClick={(date, hour) => setCreateModal({ date, hour })}
+              onSelect={(s) => setDetailPanel(s)}
             />
           ) : (
             <WeekView
@@ -368,10 +450,43 @@ export default function CalendarPage() {
               days={weekDays}
               getEventsForDay={getEventsForDay}
               onSlotClick={(date, hour) => setCreateModal({ date, hour })}
+              onSelect={(s) => setDetailPanel(s)}
             />
           )}
         </>
       )}
+       </div>
+       <DetailPanel state={detailPanel} onClose={() => setDetailPanel(null)} onOpen={(s) => setDetailPanel(s)} />
+      </div>
+
+      <div className="flex-shrink-0 flex items-center h-[22px] bg-[#7c3aed] text-white text-[11px] font-medium select-none">
+        <div className="flex items-center h-full">
+          <button className="h-full px-2 flex items-center gap-1 hover:bg-white/10 transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 3v12" />
+              <circle cx="18" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M18 9a9 9 0 01-9 9" />
+            </svg>
+            <span>{activeTab}</span>
+          </button>
+          <span className="px-2 flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+            <span>synced</span>
+          </span>
+          <span className="px-2 font-mono tabular-nums">
+            {format(selectedDate, "yyyy-MM-dd")}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center h-full">
+          {viewMode !== "studyPlanner" && (
+            <span className="px-2 font-mono tabular-nums">{viewMode === "day" ? "Dag" : "Week"}</span>
+          )}
+          <span className="px-2 font-mono tabular-nums">{dayLessonCount}L · {dayStudyCount}S · {dayTotalHours}u</span>
+          <span className="px-2 font-mono tabular-nums">{format(new Date(), "HH:mm")}</span>
+        </div>
+      </div>
 
       <CreateAppointmentCard
         open={createModal !== null}
@@ -379,6 +494,13 @@ export default function CalendarPage() {
         initialDate={createModal?.date ?? null}
         initialHour={createModal?.hour ?? 9}
         calendars={calendars}
+      />
+
+      <QuickAddPopup
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        initialMode={activeTab === "studyPlanner" ? "task" : "appointment"}
+        initialDate={selectedDate}
       />
     </div>
   );
@@ -392,14 +514,16 @@ function DayView({
   dayStudyCount,
   dayTotalHours,
   onSlotClick,
+  onSelect,
 }: {
   scrollRef: React.RefObject<HTMLDivElement>;
   selectedDate: Date;
-  events: { key: string; startMs: number; endMs: number; title: string; subtitle?: string; color: string; href?: string }[];
+  events: EventChip[];
   dayLessonCount: number;
   dayStudyCount: number;
   dayTotalHours: number;
   onSlotClick: (date: Date, hour: number) => void;
+  onSelect: (s: DetailPanelState) => void;
 }) {
   const totalGridHeight = TOTAL_HOURS * HOUR_HEIGHT;
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR);
@@ -422,39 +546,32 @@ function DayView({
 
   return (
     <>
-      <div className="flex-shrink-0 flex items-end justify-between px-8 py-5">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45">Vandaag</p>
-          <p className="mt-1 text-[34px] font-bold leading-none tracking-tight">
-            {format(selectedDate, "d MMMM", { locale: nl })}
-          </p>
-        </div>
-        <div className="flex items-baseline gap-7 text-[#1a1a1a]/65 dark:text-[#f6f3fb]/65">
-          <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayLessonCount}</span>lessen
-          </span>
-          <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayStudyCount}</span>studie
-          </span>
-          <span className="text-[13px]">
-            <span className="text-[18px] font-bold text-[#1a1a1a] dark:text-[#f6f3fb] mr-1.5">{dayTotalHours}u</span>totaal
-          </span>
-        </div>
+      <div className="flex-shrink-0 flex items-center h-[26px] px-3 bg-[#f3f3f3] dark:bg-[#252526] border-b border-[#e7e7e7] dark:border-[#1e1e1e] text-[11px] text-[#6c6c6c] dark:text-[#969696] select-none gap-1.5">
+        <span className="uppercase tracking-wide">{format(selectedDate, "EEEE", { locale: nl })}</span>
+        <ChevronRight size={11} strokeWidth={2} className="opacity-50" />
+        <span className="font-mono tabular-nums">{format(selectedDate, "d MMMM yyyy", { locale: nl })}</span>
+        <span className="ml-auto flex items-center gap-3 font-mono tabular-nums">
+          <span>{dayLessonCount} lessen</span>
+          <span className="opacity-30">|</span>
+          <span>{dayStudyCount} studie</span>
+          <span className="opacity-30">|</span>
+          <span>{dayTotalHours}u totaal</span>
+        </span>
       </div>
 
-      <div ref={scrollRef} className="overflow-y-auto flex-1">
+      <div ref={scrollRef} className="overflow-y-auto flex-1 [scrollbar-width:thin] bg-white dark:bg-[#1e1e1e]">
         <div
-          className="relative grid mx-6"
+          className="relative grid"
           style={{ gridTemplateColumns: `${TIME_COL_W}px 1fr`, height: totalGridHeight }}
         >
-          <div className="relative">
+          <div className="relative border-r border-[#e7e7e7] dark:border-[#2d2d30]">
             {hours.map((h, i) => (
               <div
                 key={h}
-                className="absolute w-full flex items-start justify-end pr-3"
-                style={{ top: i * HOUR_HEIGHT - 7, height: HOUR_HEIGHT }}
+                className="absolute w-full flex items-start justify-end pr-2"
+                style={{ top: i * HOUR_HEIGHT - 5, height: HOUR_HEIGHT }}
               >
-                <span className="text-[11px] text-[#1a1a1a]/35 dark:text-[#f6f3fb]/35 font-medium tabular-nums leading-none">
+                <span className="text-[10px] text-[#6c6c6c] dark:text-[#858585] font-mono tabular-nums leading-none">
                   {String(h).padStart(2, "0")}:00
                 </span>
               </div>
@@ -469,7 +586,7 @@ function DayView({
             {hours.map((h, i) => (
               <div
                 key={h}
-                className="absolute w-full border-t border-[#e3dbef] dark:border-[#2a2138]"
+                className="absolute w-full border-t border-[#e7e7e7] dark:border-[#2d2d30]"
                 style={{ top: i * HOUR_HEIGHT }}
               />
             ))}
@@ -481,20 +598,14 @@ function DayView({
               const end = new Date(e.endMs);
               const inner = (
                 <div
-                  className="h-full bg-[#faf7fd] dark:bg-[#181225] px-3 py-1.5 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] dark:hover:bg-[#221833] transition-colors"
-                  style={{ borderLeft: `3px solid ${e.color}`, boxShadow: "0 1px 0 rgba(0,0,0,0.04)" }}
+                  className="h-full px-2 py-1 flex flex-col gap-0.5 overflow-hidden transition-colors bg-white dark:bg-[#252526] hover:bg-[#f3f3f3] dark:hover:bg-[#2a2d2e] border border-[#e7e7e7] dark:border-[#2d2d30]"
+                  style={{ borderLeft: `2px solid ${e.color}` }}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={e.color} strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <span className="text-[12.5px] font-semibold leading-tight truncate">{e.title}</span>
-                  </div>
+                  <span className="text-[12px] font-semibold leading-tight truncate text-[#333333] dark:text-[#cccccc]">{e.title}</span>
                   {e.subtitle && (
-                    <span className="text-[11px] text-[#1a1a1a]/55 dark:text-[#f6f3fb]/55 leading-tight truncate">{e.subtitle}</span>
+                    <span className="text-[11px] text-[#6c6c6c] dark:text-[#969696] leading-tight truncate">{e.subtitle}</span>
                   )}
-                  <span className="text-[10.5px] text-[#1a1a1a]/40 dark:text-[#f6f3fb]/40 leading-none mt-auto tabular-nums">
+                  <span className="text-[10px] text-[#6c6c6c] dark:text-[#858585] font-mono leading-none mt-auto tabular-nums">
                     {format(start, "HH:mm")}–{format(end, "HH:mm")}
                   </span>
                 </div>
@@ -504,10 +615,13 @@ function DayView({
                   key={e.key}
                   data-event="1"
                   className="absolute"
-                  style={{ top, height, left: 8, right: 8 }}
-                  onClick={(ev) => ev.stopPropagation()}
+                  style={{ top, height, left: 4, right: 4 }}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    if (e.select) onSelect(e.select);
+                  }}
                 >
-                  {e.href ? <Link to={e.href} className="block h-full">{inner}</Link> : inner}
+                  <button type="button" className="block h-full w-full text-left focus:outline-none">{inner}</button>
                 </div>
               );
             })}
@@ -515,10 +629,10 @@ function DayView({
             {showNow && nowH >= START_HOUR && nowH < END_HOUR && (
               <div
                 className="absolute pointer-events-none flex items-center z-30"
-                style={{ top: nowTop - 5, left: -4, right: 0 }}
+                style={{ top: nowTop, left: -3, right: 0 }}
               >
-                <div className="w-2.5 h-2.5 bg-[#c44545]" />
-                <div className="flex-1 h-[2px] bg-[#c44545]" />
+                <span className="h-1.5 w-1.5 bg-[#f48771]" />
+                <div className="flex-1 h-px bg-[#f48771]" />
               </div>
             )}
           </div>
@@ -533,11 +647,13 @@ function WeekView({
   days,
   getEventsForDay,
   onSlotClick,
+  onSelect,
 }: {
   scrollRef: React.RefObject<HTMLDivElement>;
   days: Date[];
-  getEventsForDay: (day: Date) => { key: string; startMs: number; endMs: number; title: string; subtitle?: string; color: string; href?: string }[];
+  getEventsForDay: (day: Date) => EventChip[];
   onSlotClick: (date: Date, hour: number) => void;
+  onSelect: (s: DetailPanelState) => void;
 }) {
   const totalGridHeight = TOTAL_HOURS * HOUR_HEIGHT;
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR);
@@ -551,19 +667,19 @@ function WeekView({
   };
 
   return (
-    <div ref={scrollRef} className="overflow-y-auto flex-1">
+    <div ref={scrollRef} className="overflow-y-auto flex-1 [scrollbar-width:thin] bg-white dark:bg-[#1e1e1e]">
       <div
-        className="relative grid mx-6"
+        className="relative grid"
         style={{ gridTemplateColumns: `${TIME_COL_W}px repeat(${days.length}, 1fr)`, height: totalGridHeight }}
       >
-        <div className="relative">
+        <div className="relative border-r border-[#e7e7e7] dark:border-[#2d2d30]">
           {hours.map((h, i) => (
             <div
               key={h}
-              className="absolute w-full flex items-start justify-end pr-3"
-              style={{ top: i * HOUR_HEIGHT - 7, height: HOUR_HEIGHT }}
+              className="absolute w-full flex items-start justify-end pr-2"
+              style={{ top: i * HOUR_HEIGHT - 5, height: HOUR_HEIGHT }}
             >
-              <span className="text-[11px] text-[#1a1a1a]/35 dark:text-[#f6f3fb]/35 font-medium tabular-nums leading-none">
+              <span className="text-[10px] text-[#6c6c6c] dark:text-[#858585] font-mono tabular-nums leading-none">
                 {String(h).padStart(2, "0")}:00
               </span>
             </div>
@@ -575,14 +691,14 @@ function WeekView({
           return (
             <div
               key={day.toISOString()}
-              className={clsx("relative cursor-pointer", idx !== 0 && "border-l border-[#e3dbef] dark:border-[#2a2138]")}
+              className={clsx("relative cursor-pointer", idx !== 0 && "border-l border-[#e7e7e7] dark:border-[#2d2d30]")}
               style={{ height: totalGridHeight }}
               onClick={(e) => handleColumnClick(e, day)}
             >
               {hours.map((h, i) => (
                 <div
                   key={h}
-                  className="absolute w-full border-t border-[#e3dbef] dark:border-[#2a2138]"
+                  className="absolute w-full border-t border-[#e7e7e7] dark:border-[#2d2d30]"
                   style={{ top: i * HOUR_HEIGHT }}
                 />
               ))}
@@ -591,11 +707,11 @@ function WeekView({
                 const height = Math.max(durationPx(e.startMs, e.endMs), 24);
                 const inner = (
                   <div
-                    className="h-full bg-[#faf7fd] dark:bg-[#181225] px-2 py-1 flex flex-col gap-0.5 overflow-hidden hover:bg-[#efe7fa] dark:hover:bg-[#221833] transition-colors"
-                    style={{ borderLeft: `3px solid ${e.color}` }}
+                    className="h-full px-1.5 py-0.5 flex flex-col gap-0.5 overflow-hidden transition-colors bg-white dark:bg-[#252526] hover:bg-[#f3f3f3] dark:hover:bg-[#2a2d2e] border border-[#e7e7e7] dark:border-[#2d2d30]"
+                    style={{ borderLeft: `2px solid ${e.color}` }}
                   >
-                    <span className="text-[11px] font-semibold leading-tight truncate">{e.title}</span>
-                    <span className="text-[9.5px] text-[#1a1a1a]/45 dark:text-[#f6f3fb]/45 leading-none mt-auto tabular-nums">
+                    <span className="text-[11px] font-semibold leading-tight truncate text-[#333333] dark:text-[#cccccc]">{e.title}</span>
+                    <span className="text-[9.5px] text-[#6c6c6c] dark:text-[#858585] font-mono leading-none mt-auto tabular-nums">
                       {format(new Date(e.startMs), "HH:mm")}
                     </span>
                   </div>
@@ -605,10 +721,13 @@ function WeekView({
                     key={e.key}
                     data-event="1"
                     className="absolute"
-                    style={{ top, height, left: 4, right: 4 }}
-                    onClick={(ev) => ev.stopPropagation()}
+                    style={{ top, height, left: 2, right: 2 }}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      if (e.select) onSelect(e.select);
+                    }}
                   >
-                    {e.href ? <Link to={e.href} className="block h-full">{inner}</Link> : inner}
+                    <button type="button" className="block h-full w-full text-left focus:outline-none">{inner}</button>
                   </div>
                 );
               })}
