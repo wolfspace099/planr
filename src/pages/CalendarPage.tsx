@@ -17,12 +17,15 @@ import {
 import { nl } from "date-fns/locale";
 import { UserButton } from "@clerk/clerk-react";
 import { Bell, ChevronLeft, ChevronRight, Menu, Plus, Settings } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
 
 import { CreateAppointmentCard } from "../components/pages/calendar/CreateAppointmentCard";
 import { StudyPlannerBoard } from "../components/pages/calendar/StudyPlannerBoard";
 import { DetailPanel } from "../components/pages/calendar/DetailPanel";
-import { QuickAddPopup } from "../components/pages/calendar/QuickAddPopup";
+import { QuickAddPopup, type QuickAddDraft } from "../components/pages/calendar/QuickAddPopup";
+import { LessonPickerModal } from "../components/pages/calendar/LessonPickerModal";
+import { ActivityBar, CALENDAR_TABS, type CalendarTabKey } from "../components/layout/ActivityBar";
 
 const HOUR_HEIGHT = 68;
 const START_HOUR = 7;
@@ -31,7 +34,7 @@ const TOTAL_HOURS = END_HOUR - START_HOUR;
 const TIME_COL_W = 64;
 
 type ViewMode = "week" | "day" | "studyPlanner";
-type Tab = "calendar" | "studyPlanner" | "notebook" | "grades" | "messages";
+type Tab = CalendarTabKey;
 
 export type DetailPanelState =
   | { kind: "lesson"; id: string }
@@ -51,57 +54,7 @@ type EventChip = {
   select?: { kind: "lesson" | "appointment"; id: string };
 };
 
-const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  {
-    key: "calendar",
-    label: "Rooster",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <path d="M16 2v4M8 2v4M3 10h18" />
-      </svg>
-    ),
-  },
-  {
-    key: "studyPlanner",
-    label: "Studiewijzer",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4V4z" />
-        <path d="M4 4v12a4 4 0 004 4" />
-      </svg>
-    ),
-  },
-  {
-    key: "notebook",
-    label: "Notities",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5V4a2 2 0 012-2h10a2 2 0 012 2v15.5" />
-        <path d="M4 19.5a2.5 2.5 0 002.5 2.5H20" />
-        <path d="M8 7h8M8 11h8M8 15h6" />
-      </svg>
-    ),
-  },
-  {
-    key: "grades",
-    label: "Cijfers",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 12l4-9 5 18 4-12 5 6" />
-      </svg>
-    ),
-  },
-  {
-    key: "messages",
-    label: "Berichten",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-      </svg>
-    ),
-  },
-];
+const VALID_TAB_KEYS = new Set<Tab>(CALENDAR_TABS.map((t) => t.key));
 
 function toTopPx(date: Date): number {
   const h = date.getHours() + date.getMinutes() / 60;
@@ -112,11 +65,19 @@ function durationPx(startMs: number, endMs: number): number {
 }
 
 export default function CalendarPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [activeTab, setActiveTab] = useState<Tab>("calendar");
+  const [searchParams] = useSearchParams();
+  const initialTab: Tab = (() => {
+    const raw = searchParams.get("tab");
+    return raw && VALID_TAB_KEYS.has(raw as Tab) ? (raw as Tab) : "calendar";
+  })();
+
+  const [viewMode, setViewMode] = useState<ViewMode>(initialTab === "studyPlanner" ? "studyPlanner" : "day");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number } | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<QuickAddDraft | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [detailPanel, setDetailPanel] = useState<DetailPanelState>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -130,6 +91,7 @@ export default function CalendarPage() {
   const syncCalendar = useAction(api.ical.syncCalendar);
   const calendars = useQuery(api.calendars.getAll) ?? [];
   const lessons = useQuery(api.lessons.getRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
+  const allLessons = useQuery(api.lessons.getAll) ?? [];
   const tests = useQuery(api.misc.getTests);
   const appointments = useQuery(api.misc.getAppointments);
   const homeworkSessions = useQuery(studyApi.getHomeworkSessionsInRange, { from: weekStart.getTime(), to: weekEnd.getTime() });
@@ -313,36 +275,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="flex-shrink-0 flex items-center h-[24px] bg-[#f3f3f3] dark:bg-[#3c3c3c] border-b border-[#e7e7e7] dark:border-[#252526] px-1 select-none">
-        {TABS.map((tab) => {
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              className={clsx(
-                "relative flex items-center gap-1.5 px-2.5 h-[22px] text-[12px] transition-colors",
-                active
-                  ? "text-[#333333] dark:text-[#ffffff] bg-white dark:bg-[#1e1e1e]"
-                  : "text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e]"
-              )}
-            >
-              <span className={clsx(active ? "text-[#7c3aed]" : "opacity-70")}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          );
-        })}
-        <div className="flex-1" />
-        <button
-          onClick={() => setQuickAddOpen(true)}
-          className="h-[22px] px-2 text-[11px] text-white bg-[#7c3aed] hover:bg-[#6d28d9] focus:outline-none flex items-center gap-1 mr-1"
-        >
-          <Plus size={12} strokeWidth={2.25} />
-          Toevoegen
-        </button>
-      </div>
-
       <div className="flex-1 flex overflow-hidden">
+       <ActivityBar activeTab={activeTab} onTabChange={(key) => handleTabChange(key)} />
        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
       {viewMode === "studyPlanner" ? (
         <div className="flex-1 overflow-hidden">
@@ -374,7 +308,7 @@ export default function CalendarPage() {
               Dag
             </button>
             <div className="flex-1" />
-            <div className="flex items-center gap-px pr-1">
+            <div className="flex items-center gap-px">
               <button onClick={goPrev} aria-label="Vorige" className="w-6 h-[22px] flex items-center justify-center text-[#333333] dark:text-[#cccccc] hover:bg-[#e8e8e8] dark:hover:bg-[#2a2d2e] focus:outline-none">
                 <ChevronLeft size={13} strokeWidth={2} />
               </button>
@@ -389,6 +323,13 @@ export default function CalendarPage() {
               </button>
               <span className="text-[11px] text-[#6c6c6c] dark:text-[#969696] tabular-nums px-2">{monthLabel}</span>
             </div>
+            <button
+              onClick={() => setQuickAddOpen(true)}
+              className="h-[22px] px-2 text-[11px] text-white bg-[#7c3aed] hover:bg-[#6d28d9] focus:outline-none flex items-center gap-1 mr-1"
+            >
+              <Plus size={12} strokeWidth={2.25} />
+              Toevoegen
+            </button>
           </div>
           <div className="flex-shrink-0 grid grid-cols-7 border-b border-[#e7e7e7] dark:border-[#252526] select-none">
             {weekDays.map((day, idx) => {
@@ -498,9 +439,33 @@ export default function CalendarPage() {
 
       <QuickAddPopup
         open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
+        onClose={() => {
+          setQuickAddOpen(false);
+          if (!pickerOpen) setPendingDraft(null);
+        }}
         initialMode={activeTab === "studyPlanner" ? "task" : "appointment"}
         initialDate={selectedDate}
+        initialDraft={pendingDraft}
+        onRequestPickLesson={(draft) => {
+          setPendingDraft(draft);
+          setQuickAddOpen(false);
+          setPickerOpen(true);
+        }}
+      />
+
+      <LessonPickerModal
+        open={pickerOpen}
+        onClose={() => {
+          setPickerOpen(false);
+          setQuickAddOpen(true);
+        }}
+        lessons={allLessons}
+        days={weekDays}
+        onSelect={(lesson) => {
+          setPendingDraft((d) => (d ? { ...d, lessonId: String(lesson._id) } : d));
+          setPickerOpen(false);
+          setQuickAddOpen(true);
+        }}
       />
     </div>
   );

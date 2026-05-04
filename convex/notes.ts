@@ -7,6 +7,16 @@ async function requireUser(ctx: any) {
   return identity.subject as string;
 }
 
+export const getAll = query({
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return await ctx.db
+      .query("notes")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
 export const getByLesson = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {

@@ -3,27 +3,43 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { X, Calendar, ClipboardList, FlaskConical, CheckSquare } from "lucide-react";
+import { X, Calendar, ClipboardList, FlaskConical, CheckSquare, MapPin } from "lucide-react";
 import clsx from "clsx";
 
 type Mode = "appointment" | "homework" | "test" | "task";
+
+export type QuickAddDraft = {
+  mode: Mode;
+  title?: string;
+  description?: string;
+  // homework + test
+  lessonId?: string;
+  // test fallback
+  bindMode?: "lesson" | "date";
+  subject?: string;
+  date?: string;
+};
 
 export function QuickAddPopup({
   open,
   onClose,
   initialMode = "appointment",
   initialDate,
+  initialDraft,
+  onRequestPickLesson,
 }: {
   open: boolean;
   onClose: () => void;
   initialMode?: Mode;
   initialDate?: Date | null;
+  initialDraft?: QuickAddDraft | null;
+  onRequestPickLesson?: (draft: QuickAddDraft) => void;
 }) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [mode, setMode] = useState<Mode>(initialDraft?.mode ?? initialMode);
 
   useEffect(() => {
-    if (open) setMode(initialMode);
-  }, [open, initialMode]);
+    if (open) setMode(initialDraft?.mode ?? initialMode);
+  }, [open, initialMode, initialDraft]);
 
   if (!open) return null;
 
@@ -68,8 +84,21 @@ export function QuickAddPopup({
         <div className="p-3">
           {mode === "appointment" && <AppointmentForm initialDate={initialDate} onDone={onClose} />}
           {mode === "task" && <TaskForm initialDate={initialDate} onDone={onClose} />}
-          {mode === "homework" && <HomeworkForm initialDate={initialDate} onDone={onClose} />}
-          {mode === "test" && <TestForm initialDate={initialDate} onDone={onClose} />}
+          {mode === "homework" && (
+            <HomeworkForm
+              initialDraft={initialDraft?.mode === "homework" ? initialDraft : undefined}
+              onRequestPickLesson={(d) => onRequestPickLesson?.({ ...d, mode: "homework" })}
+              onDone={onClose}
+            />
+          )}
+          {mode === "test" && (
+            <TestForm
+              initialDate={initialDate}
+              initialDraft={initialDraft?.mode === "test" ? initialDraft : undefined}
+              onRequestPickLesson={(d) => onRequestPickLesson?.({ ...d, mode: "test" })}
+              onDone={onClose}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -228,20 +257,23 @@ function TaskForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: 
   );
 }
 
-function HomeworkForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: () => void }) {
+function HomeworkForm({
+  initialDraft,
+  onRequestPickLesson,
+  onDone,
+}: {
+  initialDraft?: QuickAddDraft;
+  onRequestPickLesson?: (draft: QuickAddDraft) => void;
+  onDone: () => void;
+}) {
   const lessons = useQuery(api.lessons.getAll) ?? [];
   const create = useMutation(api.homework.create);
 
-  const upcoming = lessons
-    .filter((l) => l.startTime >= Date.now() - 7 * 86_400_000)
-    .sort((a, b) => a.startTime - b.startTime)
-    .slice(0, 60);
+  const [lessonId, setLessonId] = useState<string>(initialDraft?.lessonId ?? "");
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [description, setDescription] = useState(initialDraft?.description ?? "");
 
-  const [lessonId, setLessonId] = useState<string>("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-
-  const lesson = upcoming.find((l) => String(l._id) === lessonId);
+  const lesson = lessons.find((l) => String(l._id) === lessonId);
 
   const submit = async () => {
     if (!title.trim() || !lesson) return;
@@ -255,47 +287,53 @@ function HomeworkForm({ initialDate, onDone }: { initialDate?: Date | null; onDo
     onDone();
   };
 
+  const requestPick = () => {
+    onRequestPickLesson?.({
+      mode: "homework",
+      title,
+      description,
+      lessonId: lessonId || undefined,
+    });
+  };
+
   return (
     <div className="space-y-2.5">
       <input className={inputCls + " text-[14px]"} placeholder="Titel" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} />
       <div>
         <FieldLabel>Les (verplicht)</FieldLabel>
-        <select className={inputCls} value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
-          <option value="">Kies een les…</option>
-          {upcoming.map((l) => (
-            <option key={l._id} value={String(l._id)}>
-              {format(new Date(l.startTime), "EEE d MMM | HH:mm", { locale: nl })} — {l.subject}
-            </option>
-          ))}
-        </select>
+        <LessonBindRow lesson={lesson} onPick={requestPick} />
       </div>
       <div>
         <FieldLabel>Beschrijving</FieldLabel>
         <textarea className={inputCls + " resize-none font-mono"} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
-      {!lesson && <p className="text-[11px] text-[#6c6c6c] dark:text-[#969696]">Selecteer een les om huiswerk aan te koppelen. {!initialDate && "Geen les gepland? Voeg er eerst één toe via Rooster."}</p>}
       <PrimaryButton onClick={submit} disabled={!title.trim() || !lesson}>Opslaan</PrimaryButton>
     </div>
   );
 }
 
-function TestForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: () => void }) {
+function TestForm({
+  initialDate,
+  initialDraft,
+  onRequestPickLesson,
+  onDone,
+}: {
+  initialDate?: Date | null;
+  initialDraft?: QuickAddDraft;
+  onRequestPickLesson?: (draft: QuickAddDraft) => void;
+  onDone: () => void;
+}) {
   const lessons = useQuery(api.lessons.getAll) ?? [];
   const create = useMutation(api.misc.createTest);
 
-  const upcoming = lessons
-    .filter((l) => l.startTime >= Date.now() - 7 * 86_400_000)
-    .sort((a, b) => a.startTime - b.startTime)
-    .slice(0, 60);
+  const [bindMode, setBindMode] = useState<"lesson" | "date">(initialDraft?.bindMode ?? "lesson");
+  const [lessonId, setLessonId] = useState<string>(initialDraft?.lessonId ?? "");
+  const [date, setDate] = useState(initialDraft?.date ?? toLocalDate(initialDate));
+  const [subject, setSubject] = useState(initialDraft?.subject ?? "");
+  const [topic, setTopic] = useState(initialDraft?.title ?? "");
+  const [description, setDescription] = useState(initialDraft?.description ?? "");
 
-  const [bindMode, setBindMode] = useState<"lesson" | "date">("lesson");
-  const [lessonId, setLessonId] = useState<string>("");
-  const [date, setDate] = useState(toLocalDate(initialDate));
-  const [subject, setSubject] = useState("");
-  const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-
-  const lesson = upcoming.find((l) => String(l._id) === lessonId);
+  const lesson = lessons.find((l) => String(l._id) === lessonId);
 
   const canSubmit =
     topic.trim() &&
@@ -320,6 +358,18 @@ function TestForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: 
       });
     }
     onDone();
+  };
+
+  const requestPick = () => {
+    onRequestPickLesson?.({
+      mode: "test",
+      title: topic,
+      description,
+      lessonId: lessonId || undefined,
+      bindMode: "lesson",
+      subject,
+      date,
+    });
   };
 
   return (
@@ -354,14 +404,7 @@ function TestForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: 
       {bindMode === "lesson" ? (
         <div>
           <FieldLabel>Les (verplicht)</FieldLabel>
-          <select className={inputCls} value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
-            <option value="">Kies een les…</option>
-            {upcoming.map((l) => (
-              <option key={l._id} value={String(l._id)}>
-                {format(new Date(l.startTime), "EEE d MMM | HH:mm", { locale: nl })} — {l.subject}
-              </option>
-            ))}
-          </select>
+          <LessonBindRow lesson={lesson} onPick={requestPick} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
@@ -382,5 +425,40 @@ function TestForm({ initialDate, onDone }: { initialDate?: Date | null; onDone: 
       </div>
       <PrimaryButton onClick={submit} disabled={!canSubmit}>Opslaan</PrimaryButton>
     </div>
+  );
+}
+
+function LessonBindRow({ lesson, onPick }: { lesson: any; onPick: () => void }) {
+  if (lesson) {
+    return (
+      <div className="flex items-stretch border border-[#cccccc] dark:border-[#3c3c3c] bg-white dark:bg-[#1e1e1e]">
+        <div className="flex-1 px-2 py-1.5 min-w-0">
+          <div className="text-[12.5px] font-semibold text-[#333333] dark:text-[#cccccc] truncate">{lesson.subject}</div>
+          <div className="text-[10.5px] text-[#6c6c6c] dark:text-[#969696] font-mono mt-0.5 flex items-center gap-2 truncate">
+            <span>{format(new Date(lesson.startTime), "EEE d MMM | HH:mm", { locale: nl })}</span>
+            {lesson.location && (
+              <span className="flex items-center gap-0.5"><MapPin size={9} strokeWidth={2} />{lesson.location}</span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onPick}
+          className="px-3 text-[11px] uppercase tracking-wide border-l border-[#cccccc] dark:border-[#3c3c3c] text-[#333333] dark:text-[#cccccc] hover:bg-[#f3f3f3] dark:hover:bg-[#2a2d2e] focus:outline-none"
+        >
+          Wijzig
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="w-full h-9 px-3 border border-dashed border-[#cccccc] dark:border-[#3c3c3c] text-[12px] text-[#6c6c6c] dark:text-[#969696] hover:border-[#7c3aed] hover:text-[#7c3aed] focus:outline-none flex items-center gap-1.5 transition-colors"
+    >
+      <Calendar size={12} strokeWidth={2} />
+      Klik om een les uit de kalender te kiezen…
+    </button>
   );
 }

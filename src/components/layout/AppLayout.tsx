@@ -7,13 +7,15 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
-  // Calendar manages its own navigation sidebar — hide the global one entirely
+  // Calendar and Home manage their own VS Code-style chrome — hide the global sidebar
   const isCalendar = location.pathname.startsWith("/calendar");
-  const isFullScreen = isCalendar || location.pathname.startsWith("/ink");
+  const isHome = location.pathname === "/";
+  const hidesGlobalSidebar = isCalendar || isHome;
+  const isFullScreen = hidesGlobalSidebar || location.pathname.startsWith("/ink");
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
-      {!isCalendar && (
+      {!hidesGlobalSidebar && (
         <Sidebar
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
@@ -22,7 +24,7 @@ export default function AppLayout() {
 
       <main
         className={clsx(
-          !isCalendar && (collapsed ? "ml-16" : "ml-56"),
+          !hidesGlobalSidebar && (collapsed ? "ml-16" : "ml-56"),
           "flex-1 transition-all duration-200",
           isFullScreen ? "overflow-hidden" : "overflow-y-auto"
         )}

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import AppLayout from "./components/layout/AppLayout";
 import TodayPage from "./pages/TodayPage";
+import HomePage from "./pages/HomePage";
 import NotebookPage from "./pages/NotebookPage";
 import LessonDetailPage from "./pages/LessonDetailPage";
 import TasksPage from "./pages/TasksPage";
@@ -21,7 +22,8 @@ export default function App() {
       <SignedIn>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<TodayPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/today" element={<TodayPage />} />
             <Route path="/home" element={<LandingPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/notebook" element={<NotebookPage />} />
