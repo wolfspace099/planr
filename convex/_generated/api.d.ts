@@ -15,6 +15,7 @@ import type * as ical from "../ical.js";
 import type * as inkStrokes from "../inkStrokes.js";
 import type * as lessons from "../lessons.js";
 import type * as misc from "../misc.js";
+import type * as notebook from "../notebook.js";
 import type * as notes from "../notes.js";
 import type * as study from "../study.js";
 import type * as tasks from "../tasks.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   inkStrokes: typeof inkStrokes;
   lessons: typeof lessons;
   misc: typeof misc;
+  notebook: typeof notebook;
   notes: typeof notes;
   study: typeof study;
   tasks: typeof tasks;

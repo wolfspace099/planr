@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { Home } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import clsx from "clsx";
 
-export type CalendarTabKey = "calendar" | "studyPlanner" | "plannen" | "notebook" | "grades" | "messages";
+export type CalendarTabKey = "calendar" | "studyPlanner" | "plannen" | "notebook" | "settings" | "grades" | "messages";
 
 export const CALENDAR_TABS: { key: CalendarTabKey; label: string; icon: React.ReactNode }[] = [
   {
@@ -47,6 +47,11 @@ export const CALENDAR_TABS: { key: CalendarTabKey; label: string; icon: React.Re
     ),
   },
   {
+    key: "settings",
+    label: "Instellingen",
+    icon: <Settings strokeWidth={1.75} />,
+  },
+  {
     key: "grades",
     label: "Cijfers",
     icon: (
@@ -89,6 +94,47 @@ function ActiveBar() {
 }
 
 export function ActivityBar({ homeActive, activeTab, onTabChange }: ActivityBarProps) {
+  const mainTabs = CALENDAR_TABS.filter((tab) => tab.key !== "settings");
+  const settingsTab = CALENDAR_TABS.find((tab) => tab.key === "settings");
+
+  const renderTab = (tab: (typeof CALENDAR_TABS)[number]) => {
+    const active = activeTab === tab.key;
+    const className = itemClass(active);
+    const inner = (
+      <>
+        {active && <ActiveBar />}
+        {tab.icon}
+      </>
+    );
+
+    if (onTabChange) {
+      return (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => onTabChange(tab.key)}
+          title={tab.label}
+          aria-label={tab.label}
+          className={className}
+        >
+          {inner}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={tab.key}
+        to={`/calendar?tab=${tab.key}`}
+        title={tab.label}
+        aria-label={tab.label}
+        className={className}
+      >
+        {inner}
+      </Link>
+    );
+  };
+
   return (
     <aside className="flex-shrink-0 w-12 bg-[#dddddd] dark:bg-[#333333] border-r border-[#cccccc] dark:border-[#252526] flex flex-col py-1 select-none">
       <Link to="/" title="Home" aria-label="Home" className={itemClass(!!homeActive)}>
@@ -96,41 +142,14 @@ export function ActivityBar({ homeActive, activeTab, onTabChange }: ActivityBarP
         <Home strokeWidth={1.75} />
       </Link>
       <div className="mx-2 my-1 border-t border-[#cccccc] dark:border-[#2d2d30]" />
-      {CALENDAR_TABS.map((tab) => {
-        const active = activeTab === tab.key;
-        const className = itemClass(active);
-        const inner = (
-          <>
-            {active && <ActiveBar />}
-            {tab.icon}
-          </>
-        );
-        if (onTabChange) {
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onTabChange(tab.key)}
-              title={tab.label}
-              aria-label={tab.label}
-              className={className}
-            >
-              {inner}
-            </button>
-          );
-        }
-        return (
-          <Link
-            key={tab.key}
-            to={`/calendar?tab=${tab.key}`}
-            title={tab.label}
-            aria-label={tab.label}
-            className={className}
-          >
-            {inner}
-          </Link>
-        );
-      })}
+      {mainTabs.map(renderTab)}
+      <div className="mt-auto" />
+      {settingsTab && (
+        <>
+          <div className="mx-2 my-1 border-t border-[#cccccc] dark:border-[#2d2d30]" />
+          {renderTab(settingsTab)}
+        </>
+      )}
     </aside>
   );
 }

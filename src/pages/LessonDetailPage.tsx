@@ -56,7 +56,7 @@ export default function LessonDetailPage() {
       {/* Back + header */}
       <div className="mb-6">
         <Link
-          to="/notebook"
+          to="/calendar?tab=notebook"
           className="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink mb-4 transition-colors"
         >
           <ArrowLeft size={12} /> Back to notebook
@@ -138,7 +138,7 @@ export default function LessonDetailPage() {
               </p>
             </div>
             <Link
-              to={`/notebook/${encodeURIComponent(lesson.subject)}`}
+              to={`/calendar?tab=notebook&subject=${encodeURIComponent(lesson.subject)}`}
               className="flex-shrink-0 px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
             >
               Open notebook →

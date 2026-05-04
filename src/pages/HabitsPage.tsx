@@ -1,1 +1,3 @@
-export { HabitsPage as default } from "./TestsPage";
+export default function HabitsPage() {
+  return null;
+}

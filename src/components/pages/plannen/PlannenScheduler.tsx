@@ -122,7 +122,7 @@ export function PlannenScheduler({
   return (
     <SchedulerShell
       weekStart={weekStart} setWeekStart={setWeekStart} days={days}
-      accent={accent} value={value} onChange={onChange} kind={kind}
+      accent={accent} value={value} onChange={onChange} kind={kind} gridRef={gridRef}
     >
       {/* click zones */}
       {days.map((day, di) => (
@@ -161,15 +161,15 @@ export function PlannenMultiScheduler({
   onDurationChange,
   deadlineDate,
 }: {
-  slots: number[];          // array of startTime ms values
+  slots: number[];
   onChange: (slots: number[]) => void;
   durationMinutes: number;
   onDurationChange: (d: number) => void;
-  deadlineDate?: number;   // test date – shades days after it
+  deadlineDate?: number;
 }) {
   const accent   = ACCENT.test;
   const gridRef  = useRef<HTMLDivElement>(null);
-  const dragging = useRef<{ idx: number; offset: number } | null>(null);
+  const dragging = useRef(false);
 
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -179,11 +179,10 @@ export function PlannenMultiScheduler({
     end:   endOfWeek(weekStart, { weekStartsOn: 1 }),
   }).slice(0, 5);
 
-  // Find which column a slot belongs to
   const slotDayIndex = (ts: number) =>
     days.findIndex((d) => isSameDay(d, new Date(ts)));
 
-  const hitTs = useCallback((e: MouseEvent | React.MouseEvent): { ts: number; di: number } | null => {
+  const hitTs = useCallback((e: MouseEvent | React.MouseEvent): { ts: number } | null => {
     const grid = gridRef.current; if (!grid) return null;
     const rect = grid.getBoundingClientRect();
     const pct  = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
@@ -191,33 +190,42 @@ export function PlannenMultiScheduler({
     const h    = Math.floor(rawH);
     const m    = (rawH % 1) < 0.5 ? 0 : 30;
     if (h < 7 || h >= 23) return null;
-    const di   = Math.min(4, Math.max(0, Math.floor((e.clientX - rect.left) / (rect.width / 5))));
-    return { ts: tsFromDayHour(days[di], h, m), di };
+    const di = Math.min(4, Math.max(0, Math.floor((e.clientX - rect.left) / (rect.width / 5))));
+    return { ts: tsFromDayHour(days[di], h, m) };
   }, [days]);
+
+  // Returns true if ts overlaps any existing slot, optionally excluding one by original value
+  const overlaps = (ts: number, excludeTs?: number): boolean => {
+    const durMs = durationMinutes * 60 * 1000;
+    return slots.some((s) => {
+      if (excludeTs !== undefined && s === excludeTs) return false;
+      return ts < s + durMs && ts + durMs > s;
+    });
+  };
 
   const handleGridClick = (e: React.MouseEvent) => {
     if (dragging.current) return;
     const hit = hitTs(e); if (!hit) return;
-    // check if clicking an existing chip
-    const existIdx = slots.findIndex((s) => {
-      const sd = new Date(s); const hd = new Date(hit.ts);
-      return isSameDay(sd, hd) && sd.getHours() === hd.getHours() && sd.getMinutes() === hd.getMinutes();
-    });
-    if (existIdx !== -1) {
-      onChange(slots.filter((_, i) => i !== existIdx));
-    } else {
-      onChange([...slots, hit.ts].sort((a, b) => a - b));
-    }
+    if (overlaps(hit.ts)) return;
+    onChange([...slots, hit.ts].sort((a, b) => a - b));
   };
 
   const handleChipDown = (e: React.MouseEvent, idx: number) => {
     e.stopPropagation();
-    const chip    = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const totalPx = gridRef.current?.getBoundingClientRect().height ?? 1;
-    const offset  = ((e.clientY - chip.top) / totalPx) * HOURS.length * 60;
-    dragging.current = { idx, offset };
+    const startX    = e.clientX;
+    const startY    = e.clientY;
+    const chip      = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const totalPx   = gridRef.current?.getBoundingClientRect().height ?? 1;
+    const offset    = ((e.clientY - chip.top) / totalPx) * HOURS.length * 60;
+    const originTs  = slots[idx]; // stable identity of this chip
+    let moved       = false;
 
     const onMove = (me: MouseEvent) => {
+      if (!moved && (Math.abs(me.clientX - startX) > 4 || Math.abs(me.clientY - startY) > 4)) {
+        moved = true;
+        dragging.current = true;
+      }
+      if (!moved) return;
       const grid = gridRef.current; if (!grid) return;
       const rect = grid.getBoundingClientRect();
       const adj  = me.clientY - rect.top - (offset / (HOURS.length * 60)) * rect.height;
@@ -227,15 +235,22 @@ export function PlannenMultiScheduler({
       const m    = (rawH % 1) < 0.5 ? 0 : 30;
       const di   = Math.min(4, Math.max(0, Math.floor((me.clientX - rect.left) / (rect.width / 5))));
       const newTs = tsFromDayHour(days[di], h, m);
-      const next  = [...slots];
-      next[idx]   = newTs;
+      if (overlaps(newTs, originTs)) return; // refuse overlapping drop
+      const next = slots.map((s) => (s === originTs ? newTs : s));
       onChange(next.sort((a, b) => a - b));
     };
+
     const onUp = () => {
-      setTimeout(() => { dragging.current = null; }, 0);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      if (!moved) {
+        // pure click — delete
+        onChange(slots.filter((s) => s !== originTs));
+      }
+      // reset dragging AFTER the click event has fired so handleGridClick stays gated
+      requestAnimationFrame(() => { dragging.current = false; });
     };
+
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -247,15 +262,12 @@ export function PlannenMultiScheduler({
     <SchedulerShell
       weekStart={weekStart} setWeekStart={setWeekStart} days={days}
       accent={accent} value={fakeSlot} onChange={fakeOnChange} kind="test"
-      hideChip
+      hideChip gridRef={gridRef}
     >
-      {/* click zone over the whole grid */}
-      <div
-        className="absolute inset-0 cursor-crosshair"
-        onClick={handleGridClick}
-      />
+      {/* click zone */}
+      <div className="absolute inset-0 cursor-crosshair" onClick={handleGridClick} />
 
-      {/* shade days after deadline */}
+      {/* deadline shade */}
       {deadlineDate && days.map((day, di) => {
         const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
         if (dayStart.getTime() < deadlineDate) return null;
@@ -268,14 +280,14 @@ export function PlannenMultiScheduler({
         );
       })}
 
-      {/* existing chips */}
+      {/* chips */}
       {slots.map((ts, idx) => {
-        const d = new Date(ts);
+        const d  = new Date(ts);
         const di = slotDayIndex(ts);
         if (di === -1) return null;
         return (
           <Chip
-            key={`${ts}-${idx}`}
+            key={ts}
             top={topPct(d.getHours(), d.getMinutes())}
             height={heightPct(durationMinutes)}
             col={di}
@@ -284,6 +296,7 @@ export function PlannenMultiScheduler({
             color={accent.chip}
             border={accent.border}
             onMouseDown={(e) => handleChipDown(e, idx)}
+            onClick={(e) => e.stopPropagation()}
           />
         );
       })}
@@ -295,7 +308,7 @@ export function PlannenMultiScheduler({
 //  Shared grid shell
 // ─────────────────────────────────────────────────────────────────────────────
 function SchedulerShell({
-  weekStart, setWeekStart, days, accent, value, onChange, kind, hideChip, children,
+  weekStart, setWeekStart, days, accent, value, onChange, kind, hideChip, gridRef, children,
 }: {
   weekStart: Date;
   setWeekStart: (fn: (w: Date) => Date) => void;
@@ -305,9 +318,9 @@ function SchedulerShell({
   onChange: (s: ScheduledSlot) => void;
   kind: string;
   hideChip?: boolean;
+  gridRef: React.RefObject<HTMLDivElement>;
   children?: React.ReactNode;
 }) {
-  const gridRef = useRef<HTMLDivElement>(null);
   const selDate = !hideChip && value.startTime ? new Date(value.startTime) : null;
 
   return (
@@ -438,11 +451,12 @@ function SchedulerShell({
 // ─────────────────────────────────────────────────────────────────────────────
 //  Chip
 // ─────────────────────────────────────────────────────────────────────────────
-function Chip({ top, height, col, label, sub, color, border, onMouseDown }: {
+function Chip({ top, height, col, label, sub, color, border, onMouseDown, onClick }: {
   top: number; height: number; col: number;
   label: string; sub: string;
   color: string; border: string;
   onMouseDown: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -456,6 +470,7 @@ function Chip({ top, height, col, label, sub, color, border, onMouseDown }: {
         borderLeft: `2px solid ${border}`,
       }}
       onMouseDown={onMouseDown}
+      onClick={onClick}
     >
       <span className="text-[10px] font-semibold text-white font-mono leading-none">{label}</span>
       <span className="text-[9px] text-white/70 font-mono leading-none mt-0.5">{sub}</span>

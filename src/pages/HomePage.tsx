@@ -17,6 +17,7 @@ import clsx from "clsx";
 
 import { api } from "../../convex/_generated/api";
 import { ActivityBar } from "../components/layout/ActivityBar";
+import { AIToggleButton } from "../components/ai/AIToggleButton";
 
 function timeStr(ts: number) {
   return format(new Date(ts), "HH:mm");
@@ -70,6 +71,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="flex items-center w-56 flex-shrink-0 justify-end">
+          <AIToggleButton />
           <UserButton appearance={{ elements: { avatarBox: "w-5 h-5 mr-3 bg-[#7c3aed]" } }} />
         </div>
       </div>

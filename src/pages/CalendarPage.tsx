@@ -27,6 +27,9 @@ import { QuickAddPopup, type QuickAddDraft } from "../components/pages/calendar/
 import { LessonPickerModal } from "../components/pages/calendar/LessonPickerModal";
 import { PlannenContent } from "../components/pages/plannen/PlannenContent";
 import { ActivityBar, CALENDAR_TABS, type CalendarTabKey } from "../components/layout/ActivityBar";
+import { AIToggleButton } from "../components/ai/AIToggleButton";
+import { NotebookWorkspace } from "../components/pages/calendar/NotebookWorkspace";
+import SettingsPage from "./SettingsPage";
 
 const HOUR_HEIGHT = 68;
 const START_HOUR = 7;
@@ -34,7 +37,7 @@ const END_HOUR = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 const TIME_COL_W = 64;
 
-type ViewMode = "week" | "day" | "studyPlanner" | "plannen";
+type ViewMode = "week" | "day" | "studyPlanner" | "plannen" | "notebook" | "settings";
 type Tab = CalendarTabKey;
 
 export type DetailPanelState =
@@ -73,7 +76,15 @@ export default function CalendarPage() {
   })();
 
   const [viewMode, setViewMode] = useState<ViewMode>(
-    initialTab === "studyPlanner" ? "studyPlanner" : initialTab === "plannen" ? "plannen" : "day"
+    initialTab === "studyPlanner"
+      ? "studyPlanner"
+      : initialTab === "plannen"
+        ? "plannen"
+        : initialTab === "notebook"
+          ? "notebook"
+          : initialTab === "settings"
+            ? "settings"
+          : "day",
   );
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -159,9 +170,13 @@ export default function CalendarPage() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === "calendar") setViewMode((m) => (m === "studyPlanner" || m === "plannen" ? "day" : m));
+    if (tab === "calendar") {
+      setViewMode((m) => (m === "studyPlanner" || m === "plannen" || m === "notebook" || m === "settings" ? "day" : m));
+    }
     if (tab === "studyPlanner") setViewMode("studyPlanner");
     if (tab === "plannen") setViewMode("plannen");
+    if (tab === "notebook") setViewMode("notebook");
+    if (tab === "settings") setViewMode("settings");
   };
 
   function getEventsForDay(day: Date): EventChip[] {
@@ -271,6 +286,7 @@ export default function CalendarPage() {
           </div>
         </div>
         <div className="flex items-center w-56 flex-shrink-0 justify-end">
+          <AIToggleButton />
           <UserButton
             appearance={{
               elements: { avatarBox: "w-5 h-5 mr-3 bg-[#7c3aed]" },
@@ -288,6 +304,12 @@ export default function CalendarPage() {
         </div>
       ) : viewMode === "plannen" ? (
         <PlannenContent />
+      ) : viewMode === "notebook" ? (
+        <NotebookWorkspace />
+      ) : viewMode === "settings" ? (
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e]">
+          <SettingsPage embedded />
+        </div>
       ) : (
         <>
           <div className="flex-shrink-0 flex items-center h-[28px] bg-[#f3f3f3] dark:bg-[#252526] border-b border-[#e7e7e7] dark:border-[#1e1e1e] px-1 select-none">
@@ -427,7 +449,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex-1" />
         <div className="flex items-center h-full">
-          {viewMode !== "studyPlanner" && (
+          {(viewMode === "day" || viewMode === "week") && (
             <span className="px-2 font-mono tabular-nums">{viewMode === "day" ? "Dag" : "Week"}</span>
           )}
           <span className="px-2 font-mono tabular-nums">{dayLessonCount}L · {dayStudyCount}S · {dayTotalHours}u</span>

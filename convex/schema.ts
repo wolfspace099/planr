@@ -50,6 +50,42 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_subject", ["userId", "subject"]),
 
+  notebookPages: defineTable({
+    userId: v.string(),
+    subject: v.string(),
+    title: v.string(),
+    chapter: v.optional(v.string()),
+    noteDate: v.optional(v.number()),
+    tags: v.array(v.string()),
+    typedContent: v.string(),
+    drawingStrokes: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_subject_and_updatedAt", ["userId", "subject", "updatedAt"]),
+
+  notebookPagePhotos: defineTable({
+    userId: v.string(),
+    pageId: v.id("notebookPages"),
+    storageId: v.id("_storage"),
+    caption: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_page", ["pageId"])
+    .index("by_user", ["userId"]),
+
+  notebookPageLinks: defineTable({
+    userId: v.string(),
+    pageId: v.id("notebookPages"),
+    kind: v.union(v.literal("homework"), v.literal("test")),
+    homeworkId: v.optional(v.id("homework")),
+    testId: v.optional(v.id("tests")),
+    createdAt: v.number(),
+  })
+    .index("by_page", ["pageId"])
+    .index("by_user", ["userId"]),
+
   homework: defineTable({
     userId: v.string(),
     lessonId: v.optional(v.id("lessons")),

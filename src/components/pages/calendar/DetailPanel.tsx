@@ -142,7 +142,7 @@ function LessonPanel({
         {tab === "info" && (
           <div className="space-y-3">
             <Link
-              to={`/notebook/${encodeURIComponent(lesson.subject)}`}
+              to={`/calendar?tab=notebook&subject=${encodeURIComponent(lesson.subject)}`}
               className="flex items-center gap-2 px-3 py-2 bg-[#f8f8f8] dark:bg-[#252526] border border-[#e7e7e7] dark:border-[#2d2d30] hover:border-[#7c3aed]/50 transition-colors text-[12px] text-[#333333] dark:text-[#cccccc]"
             >
               <BookOpen size={13} className="text-[#7c3aed]" strokeWidth={2} />

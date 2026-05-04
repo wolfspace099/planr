@@ -8,41 +8,38 @@ import LessonDetailPage from "./pages/LessonDetailPage";
 import TasksPage from "./pages/TasksPage";
 import HomeworkPage from "./pages/HomeworkPage";
 import CalendarPage from "./pages/CalendarPage";
-import HabitsPage from "./pages/HabitsPage";
-import AppointmentsPage from "./pages/AppointmentsPage";
-import TestsPage from "./pages/TestsPage";
-import StudyPlannerPage from "./pages/StudyPlannerPage";
 import PlannenPage from "./pages/PlannenPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
 import InkNotebookPage from "./pages/InkNotebookPage";
+import { AIPanel } from "./components/ai/AIPanel";
+import { AIPanelProvider } from "./components/ai/AIPanelProvider";
 
 export default function App() {
   return (
     <>
       <SignedIn>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/today" element={<TodayPage />} />
-            <Route path="/home" element={<LandingPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/notebook" element={<NotebookPage />} />
-            <Route path="/notebook/:subject" element={<InkNotebookPage />} />
-            <Route path="/lesson/:id" element={<LessonDetailPage />} />
-            <Route path="/homework" element={<HomeworkPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/tests" element={<TestsPage />} />
-            <Route path="/study" element={<StudyPlannerPage />} />
-            <Route path="/plannen" element={<PlannenPage />} />
-            <Route path="/habits" element={<HabitsPage />} />
-            <Route path="/appointments" element={<AppointmentsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/ink/:subject" element={<InkNotebookPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+        <AIPanelProvider>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/today" element={<TodayPage />} />
+              <Route path="/home" element={<LandingPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/notebook" element={<NotebookPage />} />
+              <Route path="/notebook/:subject" element={<InkNotebookPage />} />
+              <Route path="/lesson/:id" element={<LessonDetailPage />} />
+              <Route path="/homework" element={<HomeworkPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/plannen" element={<PlannenPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/ink/:subject" element={<InkNotebookPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+          <AIPanel />
+        </AIPanelProvider>
       </SignedIn>
       <SignedOut>
         <LandingPage />
