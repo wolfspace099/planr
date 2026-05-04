@@ -93,6 +93,30 @@ export const deleteStudySession = mutation({
   },
 });
 
+export const scheduleStudySession = mutation({
+  args: {
+    testId: v.id("tests"),
+    startTime: v.number(),
+    durationMinutes: v.number(),
+  },
+  handler: async (ctx, { testId, startTime, durationMinutes }) => {
+    const userId = await requireUser(ctx);
+    const test = await ctx.db.get(testId);
+    if (!test || test.userId !== userId) throw new Error("Not found");
+
+    return await ctx.db.insert("studySessions", {
+      userId,
+      testId,
+      title: `Studeren: ${test.topic}`,
+      description: `Voorbereiding ${test.subject}`,
+      startTime,
+      endTime: startTime + durationMinutes * 60 * 1000,
+      done: false,
+      color: "#8B5CF6",
+    });
+  },
+});
+
 export const scheduleStudySessions = mutation({
   args: {
     testId: v.id("tests"),

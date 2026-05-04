@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
 import clsx from "clsx";
 
-export type CalendarTabKey = "calendar" | "studyPlanner" | "notebook" | "grades" | "messages";
+export type CalendarTabKey = "calendar" | "studyPlanner" | "plannen" | "notebook" | "grades" | "messages";
 
 export const CALENDAR_TABS: { key: CalendarTabKey; label: string; icon: React.ReactNode }[] = [
   {
@@ -22,6 +22,16 @@ export const CALENDAR_TABS: { key: CalendarTabKey; label: string; icon: React.Re
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4V4z" />
         <path d="M4 4v12a4 4 0 004 4" />
+      </svg>
+    ),
+  },
+  {
+    key: "plannen",
+    label: "Plannen",
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
+        <path d="M16 17H8M16 13H8M16 9H8" />
       </svg>
     ),
   },

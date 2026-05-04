@@ -13,6 +13,7 @@ export const studyApi = (api as any).study as {
   getStudySessionsInRange: any;
   toggleStudySession: any;
   deleteStudySession: any;
+  scheduleStudySession: any;
   scheduleStudySessions: any;
   // homework sessions
   getHomeworkSessions: any;

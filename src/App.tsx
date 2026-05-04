@@ -12,6 +12,7 @@ import HabitsPage from "./pages/HabitsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
 import TestsPage from "./pages/TestsPage";
 import StudyPlannerPage from "./pages/StudyPlannerPage";
+import PlannenPage from "./pages/PlannenPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
 import InkNotebookPage from "./pages/InkNotebookPage";
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/tests" element={<TestsPage />} />
             <Route path="/study" element={<StudyPlannerPage />} />
+            <Route path="/plannen" element={<PlannenPage />} />
             <Route path="/habits" element={<HabitsPage />} />
             <Route path="/appointments" element={<AppointmentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />

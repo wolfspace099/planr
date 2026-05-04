@@ -45,6 +45,7 @@ export default function Sidebar({
         { label: t.tasks, to: "/tasks", icon: CheckSquare },
         { label: t.tests, to: "/tests", icon: FlaskConical },
         { label: t.study, to: "/study", icon: GraduationCap },
+        { label: t.plannen, to: "/plannen", icon: Calendar },
         { label: t.habits, to: "/habits", icon: Repeat2 },
         { label: t.appointments, to: "/appointments", icon: CalendarClock },
       ],

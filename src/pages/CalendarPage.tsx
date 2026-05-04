@@ -25,6 +25,7 @@ import { StudyPlannerBoard } from "../components/pages/calendar/StudyPlannerBoar
 import { DetailPanel } from "../components/pages/calendar/DetailPanel";
 import { QuickAddPopup, type QuickAddDraft } from "../components/pages/calendar/QuickAddPopup";
 import { LessonPickerModal } from "../components/pages/calendar/LessonPickerModal";
+import { PlannenContent } from "../components/pages/plannen/PlannenContent";
 import { ActivityBar, CALENDAR_TABS, type CalendarTabKey } from "../components/layout/ActivityBar";
 
 const HOUR_HEIGHT = 68;
@@ -33,7 +34,7 @@ const END_HOUR = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 const TIME_COL_W = 64;
 
-type ViewMode = "week" | "day" | "studyPlanner";
+type ViewMode = "week" | "day" | "studyPlanner" | "plannen";
 type Tab = CalendarTabKey;
 
 export type DetailPanelState =
@@ -71,7 +72,9 @@ export default function CalendarPage() {
     return raw && VALID_TAB_KEYS.has(raw as Tab) ? (raw as Tab) : "calendar";
   })();
 
-  const [viewMode, setViewMode] = useState<ViewMode>(initialTab === "studyPlanner" ? "studyPlanner" : "day");
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    initialTab === "studyPlanner" ? "studyPlanner" : initialTab === "plannen" ? "plannen" : "day"
+  );
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number } | null>(null);
@@ -156,8 +159,9 @@ export default function CalendarPage() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === "calendar") setViewMode((m) => (m === "studyPlanner" ? "day" : m));
+    if (tab === "calendar") setViewMode((m) => (m === "studyPlanner" || m === "plannen" ? "day" : m));
     if (tab === "studyPlanner") setViewMode("studyPlanner");
+    if (tab === "plannen") setViewMode("plannen");
   };
 
   function getEventsForDay(day: Date): EventChip[] {
@@ -282,6 +286,8 @@ export default function CalendarPage() {
         <div className="flex-1 overflow-hidden">
           <StudyPlannerBoard weekStart={weekStart} onSelect={(s) => setDetailPanel(s)} onQuickAdd={() => setQuickAddOpen(true)} />
         </div>
+      ) : viewMode === "plannen" ? (
+        <PlannenContent />
       ) : (
         <>
           <div className="flex-shrink-0 flex items-center h-[28px] bg-[#f3f3f3] dark:bg-[#252526] border-b border-[#e7e7e7] dark:border-[#1e1e1e] px-1 select-none">
