@@ -35,7 +35,7 @@ export default function Sidebar({
       items: [
         { label: t.today, to: "/", icon: LayoutDashboard, exact: true },
         { label: t.calendar, to: "/calendar", icon: Calendar },
-        { label: t.notebook, to: "/notebook", icon: BookOpen },
+        { label: t.notebook, to: "/calendar?tab=notebook", icon: BookOpen },
       ],
     },
     {
@@ -45,7 +45,7 @@ export default function Sidebar({
         { label: t.tasks, to: "/tasks", icon: CheckSquare },
         { label: t.tests, to: "/tests", icon: FlaskConical },
         { label: t.study, to: "/study", icon: GraduationCap },
-        { label: t.plannen, to: "/plannen", icon: Calendar },
+        { label: t.plannen, to: "/calendar?tab=plannen", icon: Calendar },
         { label: t.habits, to: "/habits", icon: Repeat2 },
         { label: t.appointments, to: "/appointments", icon: CalendarClock },
       ],
@@ -89,9 +89,14 @@ export default function Sidebar({
               </div>
             )}
             {section.items.map(({ label, to, icon: Icon, exact }) => {
+              const [toPath, toQuery] = to.split("?");
+              const requiredParams = new URLSearchParams(toQuery ?? "");
+              const queryMatches = Array.from(requiredParams.entries()).every(
+                ([key, value]) => new URLSearchParams(location.search).get(key) === value
+              );
               const active = exact
-                ? location.pathname === to
-                : location.pathname.startsWith(to);
+                ? location.pathname === toPath && queryMatches
+                : location.pathname.startsWith(toPath) && queryMatches;
               return (
                 <NavLink
                   key={to}
@@ -122,10 +127,10 @@ export default function Sidebar({
         collapsed ? "justify-center px-2" : "justify-between px-4"
       )}>
         <NavLink
-          to="/settings"
+          to="/calendar?tab=settings"
           className={clsx(
             "p-1.5 rounded transition-colors flex-shrink-0",
-            location.pathname === "/settings"
+            location.pathname === "/calendar" && new URLSearchParams(location.search).get("tab") === "settings"
               ? "text-white"
               : "text-sidebar-text hover:text-white"
           )}

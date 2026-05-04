@@ -251,7 +251,7 @@ export default function TodayPage() {
             <div className="col-span-2">
               <SectionTitle icon={<BookOpen size={13} />} label="Recent notes" />
               <Link
-                to="/notebook"
+                to="/calendar?tab=notebook"
                 className="block p-3 bg-surface border border-border rounded-lg hover:border-border-strong hover:shadow-card transition-all text-sm text-ink-muted"
               >
                 Open notebook →

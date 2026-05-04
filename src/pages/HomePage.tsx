@@ -241,7 +241,7 @@ export default function HomePage() {
 
               <Panel className="lg:col-span-2" title="Notities" icon={<BookOpen size={11} strokeWidth={2} />}>
                 <Link
-                  to="/notebook"
+                  to="/calendar?tab=notebook"
                   className="block px-3 py-2 hover:bg-[#f3f3f3] dark:hover:bg-[#2a2d2e] text-[12px] text-[#333333] dark:text-[#cccccc] transition-colors"
                 >
                   Open notebook →

@@ -14,7 +14,7 @@ import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
 import { AlertTriangle, ChevronDown, ChevronUp, Filter, Plus, X } from "lucide-react"
 import { LessonPickerModal } from "./LessonPickerModal"
-import type { DetailPanelState } from "../../../pages/CalendarPage"
+import type { DetailPanelState } from "../../../pages/calendarTabs/types"
 
 export type PlannerBlock = {
   id: string

@@ -7,11 +7,10 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
-  // Calendar, Home, and Plannen manage their own VS Code-style chrome — hide the global sidebar
+  // Calendar and Home manage their own VS Code-style chrome, so hide the global sidebar there.
   const isCalendar = location.pathname.startsWith("/calendar");
   const isHome = location.pathname === "/";
-  const isPlannen = location.pathname === "/plannen";
-  const hidesGlobalSidebar = isCalendar || isHome || isPlannen;
+  const hidesGlobalSidebar = isCalendar || isHome;
   const isFullScreen = hidesGlobalSidebar || location.pathname.startsWith("/ink");
 
   return (

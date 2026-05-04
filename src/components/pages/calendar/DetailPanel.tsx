@@ -17,7 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import clsx from "clsx";
-import type { DetailPanelState } from "../../../pages/CalendarPage";
+import type { DetailPanelState } from "../../../pages/calendarTabs/types";
 
 export function DetailPanel({
   state,
